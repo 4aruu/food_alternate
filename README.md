@@ -1,6 +1,6 @@
-# React
+# FOOD-SUBSTITUTION-ENGINE
 
-A modern React-based project utilizing the latest frontend technologies and tools for building responsive web applications.
+A modern React-based FOOD technology project utilizing the latest frontend technologies and tools for building responsive web application in finding the best alternatives for your liking.
 
 ## 🚀 Features
 
