@@ -5,12 +5,6 @@ import Image from '../../../components/AppImage';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 
-const AddFoodModal = ({ isOpen, onClose, onAddFood, existingFoods }) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('all');
-
   const mockFoods = [
     {
       id: 'quinoa',
@@ -148,7 +142,6 @@ const AddFoodModal = ({ isOpen, onClose, onAddFood, existingFoods }) => {
         setSearchResults(filtered);
         setIsLoading(false);
       }, 300);
-
       return () => clearTimeout(timer);
     } else {
       setSearchResults([]);
