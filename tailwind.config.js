@@ -1,183 +1,168 @@
-/** @type {import('tailwindcss').Config} */
-export default {
-  darkMode: ["class"],
-  content: [
-    './pages/**/*.{js,jsx}',
-    './components/**/*.{js,jsx}',
-    './app/**/*.{js,jsx}',
-    './src/**/*.{js,jsx}',
-  ],
-  prefix: "",
-  theme: {
-    container: {
-      center: true,
-      padding: "2rem",
-      screens: {
-        "2xl": "1400px",
-      },
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import Icon from '../AppIcon';
+import SearchBar from './SearchBar';
+import UserMenu from './UserMenu';
+import MobileNavigation from './MobileNavigation';
+
+const Header = ({ user = null, onNavigate = () => {}, searchProps = {} }) => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const location = useLocation();
+
+  const navigationItems = [
+    {
+      label: 'Discover',
+      path: '/landing-page',
+      icon: 'Search',
+      description: 'Find food alternatives and explore options'
     },
-    extend: {
-      colors: {
-        border: "var(--color-border)", // white with 10% opacity
-        input: "var(--color-input)", // slate-800
-        ring: "var(--color-ring)", // cyan-green
-        background: "var(--color-background)", // slate-900
-        foreground: "var(--color-foreground)", // slate-50
-        primary: {
-          DEFAULT: "var(--color-primary)", // blue-800
-          foreground: "var(--color-primary-foreground)", // slate-50
-        },
-        secondary: {
-          DEFAULT: "var(--color-secondary)", // violet-600
-          foreground: "var(--color-secondary-foreground)", // slate-50
-        },
-        destructive: {
-          DEFAULT: "var(--color-destructive)", // red-500
-          foreground: "var(--color-destructive-foreground)", // slate-50
-        },
-        muted: {
-          DEFAULT: "var(--color-muted)", // slate-700
-          foreground: "var(--color-muted-foreground)", // slate-400
-        },
-        accent: {
-          DEFAULT: "var(--color-accent)", // cyan-green
-          foreground: "var(--color-accent-foreground)", // slate-900
-        },
-        popover: {
-          DEFAULT: "var(--color-popover)", // slate-800
-          foreground: "var(--color-popover-foreground)", // slate-50
-        },
-        card: {
-          DEFAULT: "var(--color-card)", // slate-800
-          foreground: "var(--color-card-foreground)", // slate-50
-        },
-        success: {
-          DEFAULT: "var(--color-success)", // emerald-500
-          foreground: "var(--color-success-foreground)", // slate-50
-        },
-        warning: {
-          DEFAULT: "var(--color-warning)", // amber-500
-          foreground: "var(--color-warning-foreground)", // slate-900
-        },
-        error: {
-          DEFAULT: "var(--color-error)", // red-500
-          foreground: "var(--color-error-foreground)", // slate-50
-        },
-        surface: {
-          DEFAULT: "var(--color-surface)", // slate-800
-          foreground: "var(--color-surface-foreground)", // slate-50
-        },
-        glass: {
-          DEFAULT: "var(--color-glass)", // slate-800 with 85% opacity
-          border: "var(--color-glass-border)", // white with 10% opacity
-        },
-        neon: {
-          primary: "var(--color-neon-primary)", // cyan-green
-          secondary: "var(--color-neon-secondary)", // violet-600
-          accent: "var(--color-neon-accent)", // blue-800
-        },
-      },
-      borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
-      },
-      fontFamily: {
-        sans: ['Inter', 'sans-serif'],
-        mono: ['JetBrains Mono', 'monospace'],
-      },
-      fontSize: {
-        'xs': ['0.75rem', { lineHeight: '1rem' }],
-        'sm': ['0.875rem', { lineHeight: '1.25rem' }],
-        'base': ['1rem', { lineHeight: '1.5rem' }],
-        'lg': ['1.125rem', { lineHeight: '1.75rem' }],
-        'xl': ['1.25rem', { lineHeight: '1.75rem' }],
-        '2xl': ['1.5rem', { lineHeight: '2rem' }],
-        '3xl': ['1.875rem', { lineHeight: '2.25rem' }],
-        '4xl': ['2.25rem', { lineHeight: '2.5rem' }],
-        '5xl': ['3rem', { lineHeight: '1' }],
-        '6xl': ['3.75rem', { lineHeight: '1' }],
-      },
-      fontWeight: {
-        normal: '400',
-        medium: '500',
-        semibold: '600',
-        bold: '700',
-      },
-      boxShadow: {
-        'glass': '0 1px 3px var(--shadow-dark), 0 4px 14px var(--shadow-primary)',
-        'glass-lg': '0 4px 6px var(--shadow-dark), 0 10px 25px var(--shadow-primary)',
-        'neon': '0 0 20px var(--shadow-accent)',
-        'neon-lg': '0 0 30px var(--shadow-accent), 0 0 40px var(--shadow-accent)',
-      },
-      backdropBlur: {
-        'xs': '2px',
-        'sm': '4px',
-        'md': '8px',
-        'lg': '12px',
-        'xl': '16px',
-      },
-      animation: {
-        'float': 'float 6s ease-in-out infinite',
-        'float-delayed': 'float 8s ease-in-out infinite 2s',
-        'shimmer': 'shimmer 2s linear infinite',
-        'pulse-glow': 'pulse-glow 2s ease-in-out infinite alternate',
-        'fade-in': 'fadeIn 0.3s ease-out',
-        'slide-up': 'slideUp 0.3s ease-out',
-        'slide-down': 'slideDown 0.3s ease-out',
-      },
-      keyframes: {
-        float: {
-          '0%, 100%': { transform: 'translateY(0px)' },
-          '50%': { transform: 'translateY(-10px)' },
-        },
-        shimmer: {
-          '0%': { backgroundPosition: '-200px 0' },
-          '100%': { backgroundPosition: 'calc(200px + 100%) 0' },
-        },
-        'pulse-glow': {
-          '0%': { boxShadow: '0 0 5px var(--color-accent)' },
-          '100%': { boxShadow: '0 0 20px var(--color-accent), 0 0 30px var(--color-accent)' },
-        },
-        fadeIn: {
-          '0%': { opacity: '0' },
-          '100%': { opacity: '1' },
-        },
-        slideUp: {
-          '0%': { transform: 'translateY(10px)', opacity: '0' },
-          '100%': { transform: 'translateY(0)', opacity: '1' },
-        },
-        slideDown: {
-          '0%': { transform: 'translateY(-10px)', opacity: '0' },
-          '100%': { transform: 'translateY(0)', opacity: '1' },
-        },
-      },
-      transitionDuration: {
-        '200': '200ms',
-        '300': '300ms',
-        '400': '400ms',
-        '500': '500ms',
-        '600': '600ms',
-      },
-      transitionTimingFunction: {
-        'ease-out': 'cubic-bezier(0, 0, 0.2, 1)',
-        'ease-in-out': 'cubic-bezier(0.4, 0, 0.2, 1)',
-      },
-      spacing: {
-        '18': '4.5rem',
-        '88': '22rem',
-        '128': '32rem',
-      },
-      zIndex: {
-        '60': '60',
-        '70': '70',
-        '80': '80',
-        '90': '90',
-        '100': '100',
-      },
+    {
+      label: 'Compare',
+      path: '/food-comparison-tool',
+      icon: 'GitCompare',
+      description: 'Side-by-side comparison of food substitutes'
     },
-  },
-  plugins: [
-    require("tailwindcss-animate"),
-  ],
-}
+    {
+      label: 'Dashboard',
+      path: '/user-dashboard',
+      icon: 'LayoutDashboard',
+      description: 'Your personalized nutrition hub'
+    }
+  ];
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const handleNavigation = (path) => {
+    onNavigate(path);
+    setIsMobileMenuOpen(false);
+  };
+
+  const isActivePath = (path) => {
+    if (path === '/landing-page') {
+      return location?.pathname === '/' || location?.pathname === '/landing-page';
+    }
+    return location?.pathname === path;
+  };
+
+  const isLandingPage = location?.pathname === '/' || location?.pathname === '/landing-page';
+
+  return (
+    <>
+      <header
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+          isScrolled
+            ? 'backdrop-blur-xl bg-black/50 border-b border-white/10'
+            : isLandingPage
+            ? 'backdrop-blur-xl bg-transparent'
+            : 'backdrop-blur-xl bg-black/50 border-b border-white/10'
+        }`}
+      >
+        <div className="w-full px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16 lg:h-18">
+            {/* Logo */}
+            <div className="flex items-center">
+              <button
+                onClick={() => handleNavigation('/landing-page')}
+                className="flex items-center space-x-3 group transition-all duration-200 hover:scale-105"
+                aria-label="Smart Alternatives Finder Home"
+              >
+                <div className="relative w-10 h-10 bg-gradient-to-br from-emerald-500 to-cyan-500 rounded-xl flex items-center justify-center font-bold text-black">
+                  🍃
+                </div>
+                <div className="hidden sm:block">
+                  <h1 className="text-lg font-bold text-white group-hover:text-emerald-400 transition-colors duration-200">
+                    AltFinder
+                  </h1>
+                  <p className="text-xs text-gray-400 font-medium">
+                    Food Discovery
+                  </p>
+                </div>
+              </button>
+            </div>
+
+            {/* Desktop Navigation */}
+            <nav className="hidden lg:flex items-center space-x-1" role="navigation">
+              {navigationItems?.map((item) => (
+                <button
+                  key={item?.path}
+                  onClick={() => handleNavigation(item?.path)}
+                  className={`relative px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                    isActivePath(item?.path)
+                      ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20'
+                      : 'text-gray-300 hover:text-white hover:bg-white/10'
+                  }`}
+                  aria-current={isActivePath(item?.path) ? 'page' : undefined}
+                >
+                  <div className="flex items-center space-x-2">
+                    <Icon name={item?.icon} size={18} />
+                    <span>{item?.label}</span>
+                  </div>
+                </button>
+              ))}
+            </nav>
+
+            {/* Search Bar - Desktop */}
+            <div className="hidden md:block flex-1 max-w-md mx-8">
+              <SearchBar {...searchProps} />
+            </div>
+
+            {/* Right Side Actions */}
+            <div className="flex items-center space-x-4">
+              {/* Search Icon - Mobile */}
+              <button
+                className="md:hidden p-2 rounded-lg text-gray-400 hover:text-emerald-400 hover:bg-white/10 transition-all duration-200"
+                onClick={() => searchProps?.onSearchToggle?.()}
+                aria-label="Open search"
+              >
+                <Icon name="Search" size={20} />
+              </button>
+
+              {/* User Menu */}
+              <UserMenu user={user} onNavigate={handleNavigation} />
+
+              {/* Mobile Menu Toggle */}
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="lg:hidden p-2 rounded-lg text-gray-400 hover:text-emerald-400 hover:bg-white/10 transition-all duration-200"
+                aria-label="Toggle mobile menu"
+                aria-expanded={isMobileMenuOpen}
+              >
+                <Icon name={isMobileMenuOpen ? 'X' : 'Menu'} size={20} />
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Mobile Navigation */}
+      <MobileNavigation
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
+        navigationItems={navigationItems}
+        currentPath={location?.pathname}
+        onNavigate={handleNavigation}
+        user={user}
+        searchProps={searchProps}
+      />
+
+      {/* Backdrop for mobile menu */}
+      {isMobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+    </>
+  );
+};
+
+export default Header;

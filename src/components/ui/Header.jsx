@@ -52,13 +52,17 @@ const Header = ({ user = null, onNavigate = () => {}, searchProps = {} }) => {
     return location?.pathname === path;
   };
 
+  const isLandingPage = location?.pathname === '/' || location?.pathname === '/landing-page';
+
   return (
     <>
-      <header 
+      <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          isScrolled 
-            ? 'glass shadow-glass' 
-            : 'bg-transparent'
+          isScrolled
+            ? 'backdrop-blur-xl bg-black/50 border-b border-white/10'
+            : isLandingPage
+            ? 'backdrop-blur-xl bg-transparent'
+            : 'backdrop-blur-xl bg-black/50 border-b border-white/10'
         }`}
       >
         <div className="w-full px-6 lg:px-8">
@@ -70,22 +74,15 @@ const Header = ({ user = null, onNavigate = () => {}, searchProps = {} }) => {
                 className="flex items-center space-x-3 group transition-all duration-200 hover:scale-105"
                 aria-label="Smart Alternatives Finder Home"
               >
-                <div className="relative">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-glass">
-                    <Icon 
-                      name="Zap" 
-                      size={24} 
-                      className="text-primary-foreground group-hover:animate-pulse-glow" 
-                    />
-                  </div>
-                  <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-accent/20 to-secondary/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-sm"></div>
+                <div className="relative w-10 h-10 bg-gradient-to-br from-emerald-500 to-cyan-500 rounded-xl flex items-center justify-center font-bold text-black">
+                  🍃
                 </div>
                 <div className="hidden sm:block">
-                  <h1 className="text-xl font-bold text-foreground group-hover:text-accent transition-colors duration-200">
-                    Smart Alternatives
+                  <h1 className="text-lg font-bold text-white group-hover:text-emerald-400 transition-colors duration-200">
+                    AltFinder
                   </h1>
-                  <p className="text-xs text-muted-foreground font-medium">
-                    Finder
+                  <p className="text-xs text-gray-400 font-medium">
+                    Food Discovery
                   </p>
                 </div>
               </button>
@@ -97,27 +94,17 @@ const Header = ({ user = null, onNavigate = () => {}, searchProps = {} }) => {
                 <button
                   key={item?.path}
                   onClick={() => handleNavigation(item?.path)}
-                  className={`relative px-4 py-2 rounded-lg font-medium transition-all duration-200 group ${
+                  className={`relative px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
                     isActivePath(item?.path)
-                      ? 'text-accent bg-accent/10 shadow-neon'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                      ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20'
+                      : 'text-gray-300 hover:text-white hover:bg-white/10'
                   }`}
                   aria-current={isActivePath(item?.path) ? 'page' : undefined}
-                  title={item?.description}
                 >
                   <div className="flex items-center space-x-2">
-                    <Icon 
-                      name={item?.icon} 
-                      size={18} 
-                      className={`transition-colors duration-200 ${
-                        isActivePath(item?.path) ? 'text-accent' : 'group-hover:text-accent'
-                      }`}
-                    />
+                    <Icon name={item?.icon} size={18} />
                     <span>{item?.label}</span>
                   </div>
-                  {isActivePath(item?.path) && (
-                    <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1/2 h-0.5 bg-accent rounded-full"></div>
-                  )}
                 </button>
               ))}
             </nav>
@@ -131,7 +118,7 @@ const Header = ({ user = null, onNavigate = () => {}, searchProps = {} }) => {
             <div className="flex items-center space-x-4">
               {/* Search Icon - Mobile */}
               <button
-                className="md:hidden p-2 rounded-lg text-muted-foreground hover:text-accent hover:bg-muted/50 transition-all duration-200"
+                className="md:hidden p-2 rounded-lg text-gray-400 hover:text-emerald-400 hover:bg-white/10 transition-all duration-200"
                 onClick={() => searchProps?.onSearchToggle?.()}
                 aria-label="Open search"
               >
@@ -144,16 +131,17 @@ const Header = ({ user = null, onNavigate = () => {}, searchProps = {} }) => {
               {/* Mobile Menu Toggle */}
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="lg:hidden p-2 rounded-lg text-muted-foreground hover:text-accent hover:bg-muted/50 transition-all duration-200"
+                className="lg:hidden p-2 rounded-lg text-gray-400 hover:text-emerald-400 hover:bg-white/10 transition-all duration-200"
                 aria-label="Toggle mobile menu"
                 aria-expanded={isMobileMenuOpen}
               >
-                <Icon name={isMobileMenuOpen ? "X" : "Menu"} size={20} />
+                <Icon name={isMobileMenuOpen ? 'X' : 'Menu'} size={20} />
               </button>
             </div>
           </div>
         </div>
       </header>
+
       {/* Mobile Navigation */}
       <MobileNavigation
         isOpen={isMobileMenuOpen}
@@ -164,10 +152,11 @@ const Header = ({ user = null, onNavigate = () => {}, searchProps = {} }) => {
         user={user}
         searchProps={searchProps}
       />
+
       {/* Backdrop for mobile menu */}
       {isMobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 lg:hidden"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
           onClick={() => setIsMobileMenuOpen(false)}
           aria-hidden="true"
         />
