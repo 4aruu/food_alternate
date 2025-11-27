@@ -1,11 +1,54 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Icon from '../../../components/AppIcon';
 import ResultCard from './ResultCard';
 import LoadingSkeleton from './LoadingSkeleton';
 
-const ResultsGrid = ({ 
-  results = [], 
+/* --------------------------------------
+   Normalize BACKEND food into UI-safe shape
+----------------------------------------- */
+function normalizeFood(food) {
+  if (!food) return food;
+
+  // Convert allergens: { dairy: true } → ["dairy"]
+  const allergenList = food.allergens
+    ? Object.keys(food.allergens).filter(key => food.allergens[key] === true)
+    : [];
+
+  return {
+    ...food,
+
+    // Nutrition fix
+    nutrition: {
+      calories: food?.nutrition?.calories ?? 0,
+      protein: food?.nutrition?.protein ?? 0,
+      fat: food?.nutrition?.fat ?? 0,
+      carbohydrates: food?.nutrition?.carbohydrates ?? 0,
+
+      macros: {
+        protein: food?.nutrition?.protein ?? 0,
+        carbs: food?.nutrition?.carbohydrates ?? 0,
+        fat: food?.nutrition?.fat ?? 0
+      }
+    },
+
+    // Sustainability
+    sustainabilityScore:
+      food?.sustainability_score ??
+      food?.sustainability?.sustainability_score ??
+      food?.sustainabilityScore ??
+      0,
+
+    // Allergen list
+    allergens: allergenList,
+
+    // Image fallback
+    image: food?.image || "/assets/images/no_image.png"
+  };
+}
+
+const ResultsGrid = ({
+  results = [],
   isLoading = false,
   onNutritionExplore = () => {},
   onAddToFavorites = () => {},
@@ -17,12 +60,21 @@ const ResultsGrid = ({
   hasMore = false,
   loadingMore = false
 }) => {
+
+  /* --------------------------------------
+     Normalize results IMMEDIATELY
+  ----------------------------------------- */
+  const normalizedResults = useMemo(
+    () => results.map(food => normalizeFood(food)),
+    [results]
+  );
+
   const [visibleResults, setVisibleResults] = useState([]);
   const [displayCount, setDisplayCount] = useState(12);
 
   useEffect(() => {
-    setVisibleResults(results?.slice(0, displayCount));
-  }, [results, displayCount]);
+    setVisibleResults(normalizedResults.slice(0, displayCount));
+  }, [normalizedResults, displayCount]);
 
   const handleLoadMore = () => {
     if (hasMore && !loadingMore) {
@@ -33,8 +85,8 @@ const ResultsGrid = ({
 
   const handleScroll = () => {
     if (
-      window.innerHeight + document.documentElement?.scrollTop
-      >= document.documentElement?.offsetHeight - 1000
+      window.innerHeight + document.documentElement.scrollTop
+      >= document.documentElement.offsetHeight - 1000
     ) {
       handleLoadMore();
     }
@@ -47,11 +99,14 @@ const ResultsGrid = ({
     }
   }, [hasMore, loadingMore]);
 
-  if (isLoading && results?.length === 0) {
+  /* --------------------------------------
+     Empty and Loading UI
+  ----------------------------------------- */
+  if (isLoading && normalizedResults.length === 0) {
     return <LoadingSkeleton count={12} />;
   }
 
-  if (!isLoading && results?.length === 0) {
+  if (!isLoading && normalizedResults.length === 0) {
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -66,39 +121,38 @@ const ResultsGrid = ({
             No alternatives found
           </h3>
           <p className="text-muted-foreground mb-6">
-            We couldn't find any food alternatives matching your search criteria. Try adjusting your filters or search terms.
+            We couldn’t find alternatives matching your search.
           </p>
-          <div className="space-y-2 text-sm text-muted-foreground">
-            <p>• Try broader search terms</p>
-            <p>• Remove some filters</p>
-            <p>• Check spelling and try again</p>
-          </div>
         </div>
       </motion.div>
     );
   }
 
+  /* --------------------------------------
+     Main UI
+  ----------------------------------------- */
   return (
     <div className="space-y-8">
       {/* Results Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         <AnimatePresence mode="popLayout">
-          {visibleResults?.map((food, index) => (
+          {visibleResults.map((food, index) => (
             <ResultCard
-              key={food?.id}
+              key={food.id}
               food={food}
               index={index}
               onNutritionExplore={onNutritionExplore}
               onAddToFavorites={onAddToFavorites}
               onShare={onShare}
               showComparison={showComparison}
-              isSelected={selectedItems?.includes(food?.id)}
+              isSelected={selectedItems.includes(food.id)}
               onCompareToggle={onCompareToggle}
             />
           ))}
         </AnimatePresence>
       </div>
-      {/* Load More Section */}
+
+      {/* Load More */}
       {(hasMore || loadingMore) && (
         <div className="text-center py-8">
           {loadingMore ? (
@@ -107,7 +161,7 @@ const ResultsGrid = ({
                 <Icon name="Loader2" size={20} className="animate-spin text-accent" />
                 <span className="text-muted-foreground">Loading more alternatives...</span>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 <LoadingSkeleton count={4} />
               </div>
             </div>
@@ -116,21 +170,21 @@ const ResultsGrid = ({
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={handleLoadMore}
-              className="glass rounded-xl border border-glass-border px-8 py-4 text-foreground hover:text-accent transition-all duration-200 hover:shadow-glass-lg group"
+              className="glass rounded-xl border border-glass-border px-8 py-4 hover:text-accent transition-all duration-200"
             >
               <div className="flex items-center space-x-2">
-                <Icon name="ChevronDown" size={20} className="group-hover:animate-bounce" />
+                <Icon name="ChevronDown" size={20} />
                 <span className="font-medium">Load More Alternatives</span>
               </div>
             </motion.button>
           )}
         </div>
       )}
-      {/* Results Summary */}
+
+      {/* Summary */}
       <div className="text-center py-4 border-t border-glass-border">
         <p className="text-sm text-muted-foreground">
-          Showing {visibleResults?.length} of {results?.length} alternatives
-          {hasMore && ` • ${results?.length - visibleResults?.length} more available`}
+          Showing {visibleResults.length} of {normalizedResults.length} alternatives
         </p>
       </div>
     </div>

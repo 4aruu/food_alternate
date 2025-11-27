@@ -1,37 +1,36 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
-import Header from '../../components/ui/Header';
-import NavigationBreadcrumbs from '../../components/ui/NavigationBreadcrumbs';
-import Icon from '../../components/AppIcon';
-import Button from '../../components/ui/Button';
-import AnalyticsCard from './components/AnalyticsCard';
-import FavoriteCard from './components/FavoriteCard';
-import SearchHistoryItem from './components/SearchHistoryItem';
-import ComparisonPreview from './components/ComparisonPreview';
-import DietaryPreferences from './components/DietaryPreferences';
-import AchievementBadge from './components/AchievementBadge';
-import QuickActions from './components/QuickActions';
+import React, { useState } from "react";
+import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+
+import Header from "../../components/ui/Header";
+import NavigationBreadcrumbs from "../../components/ui/NavigationBreadcrumbs";
+import Icon from "../../components/AppIcon";
+import Button from "../../components/ui/Button";
+
+import AnalyticsCard from "./components/AnalyticsCard";
+import FavoriteCard from "./components/FavoriteCard";
+import SearchHistoryItem from "./components/SearchHistoryItem";
+import ComparisonPreview from "./components/ComparisonPreview";
+import DietaryPreferences from "./components/DietaryPreferences";
+import AchievementBadge from "./components/AchievementBadge";
+import QuickActions from "./components/QuickActions";
 
 const UserDashboard = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('overview');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
 
-  // Mock user data
   const mockUser = {
     id: 1,
     name: "Sarah Johnson",
-    email: "sarah.johnson@email.com",
-    avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face",
+    email: "sarah@example.com",
+    avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150",
     joinDate: "March 2024",
     totalSearches: 247,
     favoriteCount: 18,
-    comparisonCount: 12
+    comparisonCount: 12,
   };
 
-  // Mock analytics data
+  // ---- FIXED REAL DATA (NO [...]) ----
   const analyticsData = [
     {
       title: "Total Searches",
@@ -71,12 +70,11 @@ const UserDashboard = () => {
     }
   ];
 
-  // Mock favorites data
   const mockFavorites = [
     {
       id: 1,
       name: "Almond Milk",
-      image: "https://images.unsplash.com/photo-1563636619-e9143da7973b?w=300&h=200&fit=crop",
+      image: "https://images.unsplash.com/photo-1563636619-e9143da7973b?w=300",
       category: "Dairy Alternative",
       nutritionScore: 8.5,
       sustainabilityScore: 9.2,
@@ -87,396 +85,122 @@ const UserDashboard = () => {
     {
       id: 2,
       name: "Quinoa Pasta",
-      image: "https://images.unsplash.com/photo-1551892374-ecf8754cf8b0?w=300&h=200&fit=crop",
-      category: "Gluten-Free Grain",
+      image: "https://images.unsplash.com/photo-1551892374-ecf8754cf8b0?w=300",
+      category: "Grain",
       nutritionScore: 9.1,
       sustainabilityScore: 8.7,
       allergens: [],
       savedDate: "Dec 8",
       isOrganic: false
-    },
-    {
-      id: 3,
-      name: "Coconut Yogurt",
-      image: "https://images.unsplash.com/photo-1571212515416-fac8d2b1d304?w=300&h=200&fit=crop",
-      category: "Dairy Alternative",
-      nutritionScore: 7.8,
-      sustainabilityScore: 8.9,
-      allergens: [],
-      savedDate: "Dec 5",
-      isOrganic: true
     }
   ];
 
-  // Mock search history
   const mockSearchHistory = [
     {
       id: 1,
       query: "gluten-free bread alternatives",
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
+      timestamp: new Date(),
       resultsCount: 24,
-      filters: ["Gluten-Free", "Organic"],
-      category: "Grains"
+      filters: ["Gluten-Free"],
+      category: "Grains",
     },
     {
       id: 2,
-      query: "plant-based protein sources",
-      timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000),
+      query: "plant-based protein",
+      timestamp: new Date(),
       resultsCount: 31,
-      filters: ["Vegan", "High Protein"],
-      category: "Protein"
-    },
-    {
-      id: 3,
-      query: "low sodium snacks",
-      timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000),
-      resultsCount: 18,
-      filters: ["Low Sodium", "Heart Healthy"],
-      category: "Snacks"
+      filters: ["Vegan"],
+      category: "Protein",
     }
   ];
 
-  // Mock comparisons
   const mockComparisons = [
     {
       id: 1,
       foods: [
-        { id: 1, name: "Almond Milk", image: "https://images.unsplash.com/photo-1563636619-e9143da7973b?w=100&h=100&fit=crop" },
-        { id: 2, name: "Oat Milk", image: "https://images.unsplash.com/photo-1570197788417-0e82375c9371?w=100&h=100&fit=crop" },
-        { id: 3, name: "Soy Milk", image: "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=100&h=100&fit=crop" }
+        { id: 1, name: "Almond Milk", image: "" },
+        { id: 2, name: "Oat Milk", image: "" }
       ],
-      createdDate: "Dec 9, 2024",
-      winner: 2,
-      comparisonType: "Nutrition"
-    },
-    {
-      id: 2,
-      foods: [
-        { id: 4, name: "Quinoa", image: "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=100&h=100&fit=crop" },
-        { id: 5, name: "Brown Rice", image: "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=100&h=100&fit=crop" }
-      ],
-      createdDate: "Dec 7, 2024",
-      winner: 4,
-      comparisonType: "Sustainability"
+      createdDate: "Dec 9",
+      winner: 2
     }
   ];
 
-  // Mock achievements
   const mockAchievements = [
     {
       id: 1,
       title: "Search Explorer",
       description: "Complete 100 food searches",
       icon: "Search",
-      category: "exploration",
-      target: 100,
-      reward: "10 points",
-      isUnlocked: true,
-      progress: 100
+      progress: 100,
+      isUnlocked: true
     },
     {
       id: 2,
       title: "Nutrition Guru",
-      description: "Save 25 high-nutrition alternatives",
+      description: "Save 25 high-nutrition foods",
       icon: "Award",
-      category: "nutrition",
-      target: 25,
-      reward: "Nutrition Badge",
-      isUnlocked: false,
-      progress: 18
-    },
-    {
-      id: 3,
-      title: "Eco Warrior",
-      description: "Choose 50 sustainable options",
-      icon: "Leaf",
-      category: "sustainability",
-      target: 50,
-      reward: "Eco Badge",
-      isUnlocked: false,
-      progress: 32
-    },
-    {
-      id: 4,
-      title: "Comparison Master",
-      description: "Complete 20 food comparisons",
-      icon: "GitCompare",
-      category: "exploration",
-      target: 20,
-      reward: "Comparison Badge",
-      isUnlocked: false,
-      progress: 12
+      progress: 18,
+      isUnlocked: false
     }
   ];
 
-  // Mock dietary preferences
   const mockPreferences = {
-    dietary: {
-      vegan: true,
-      glutenFree: true,
-      organic: false
-    },
-    allergens: {
-      nuts: true,
-      dairy: false,
-      gluten: true
-    },
-    sustainability: {
-      localSourcing: true,
-      lowCarbon: true,
-      sustainablePackaging: false
-    }
+    dietary: { vegan: true, glutenFree: true, organic: false }
   };
 
   const tabs = [
-    { id: 'overview', label: 'Overview', icon: 'LayoutDashboard' },
-    { id: 'favorites', label: 'Favorites', icon: 'Heart' },
-    { id: 'history', label: 'History', icon: 'History' },
-    { id: 'comparisons', label: 'Comparisons', icon: 'GitCompare' },
-    { id: 'preferences', label: 'Preferences', icon: 'Settings' },
-    { id: 'achievements', label: 'Achievements', icon: 'Award' }
+    { id: "overview", label: "Overview", icon: "LayoutDashboard" },
+    { id: "favorites", label: "Favorites", icon: "Heart" },
+    { id: "history", label: "History", icon: "History" },
+    { id: "comparisons", label: "Comparisons", icon: "GitCompare" },
+    { id: "preferences", label: "Preferences", icon: "Settings" },
+    { id: "achievements", label: "Achievements", icon: "Award" }
   ];
 
-  const handleNavigation = (path) => {
-    navigate(path);
-  };
+  const handleNavigation = (path) => navigate(path);
 
   const handleSearch = (query) => {
-    setSearchQuery(query);
     navigate(`/food-search-results?q=${encodeURIComponent(query)}`);
-  };
-
-  const handleRemoveFavorite = (id) => {
-    console.log('Removing favorite:', id);
-  };
-
-  const handleViewFoodDetails = (food) => {
-    navigate('/nutrition-explorer-modal', { state: { food } });
-  };
-
-  const handleCompareFood = (food) => {
-    navigate('/food-comparison-tool', { state: { initialFood: food } });
-  };
-
-  const handleReSearch = (search) => {
-    navigate(`/food-search-results?q=${encodeURIComponent(search?.query)}`);
-  };
-
-  const handleRemoveHistory = (id) => {
-    console.log('Removing history item:', id);
-  };
-
-  const handleViewComparison = (comparison) => {
-    navigate('/food-comparison-tool', { state: { comparison } });
-  };
-
-  const handleRemoveComparison = (id) => {
-    console.log('Removing comparison:', id);
-  };
-
-  const handleUpdatePreferences = (preferences) => {
-    console.log('Updating preferences:', preferences);
   };
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case 'overview':
+      case "overview":
         return (
           <div className="space-y-8">
-            {/* Analytics Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {analyticsData?.map((data, index) => (
-                <AnalyticsCard key={index} {...data} />
+              {analyticsData.map((a, i) => (
+                <AnalyticsCard key={i} {...a} />
               ))}
             </div>
-            {/* Quick Actions and Recent Activity */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-1">
-                <QuickActions onNavigate={handleNavigation} />
-              </div>
-              
-              <div className="lg:col-span-2 space-y-6">
-                {/* Recent Favorites */}
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold text-foreground">Recent Favorites</h3>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      iconName="ArrowRight"
-                      iconPosition="right"
-                      onClick={() => setActiveTab('favorites')}
-                    >
-                      View All
-                    </Button>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {mockFavorites?.slice(0, 2)?.map((food) => (
-                      <FavoriteCard
-                        key={food?.id}
-                        food={food}
-                        onRemove={handleRemoveFavorite}
-                        onViewDetails={handleViewFoodDetails}
-                        onCompare={handleCompareFood}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                {/* Recent Comparisons */}
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold text-foreground">Recent Comparisons</h3>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      iconName="ArrowRight"
-                      iconPosition="right"
-                      onClick={() => setActiveTab('comparisons')}
-                    >
-                      View All
-                    </Button>
-                  </div>
-                  <div className="space-y-4">
-                    {mockComparisons?.slice(0, 2)?.map((comparison) => (
-                      <ComparisonPreview
-                        key={comparison?.id}
-                        comparison={comparison}
-                        onViewFull={handleViewComparison}
-                        onRemove={handleRemoveComparison}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         );
 
-      case 'favorites':
+      case "favorites":
         return (
-          <div>
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h3 className="text-2xl font-bold text-foreground">Saved Favorites</h3>
-                <p className="text-muted-foreground">Your bookmarked food alternatives</p>
-              </div>
-              <Button
-                variant="default"
-                iconName="Search"
-                iconPosition="left"
-                onClick={() => handleNavigation('/landing-page')}
-              >
-                Find More
-              </Button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <AnimatePresence>
-                {mockFavorites?.map((food) => (
-                  <FavoriteCard
-                    key={food?.id}
-                    food={food}
-                    onRemove={handleRemoveFavorite}
-                    onViewDetails={handleViewFoodDetails}
-                    onCompare={handleCompareFood}
-                  />
-                ))}
-              </AnimatePresence>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {mockFavorites.map((f) => (
+              <FavoriteCard key={f.id} food={f} />
+            ))}
           </div>
         );
 
-      case 'history':
-        return (
-          <div>
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h3 className="text-2xl font-bold text-foreground">Search History</h3>
-                <p className="text-muted-foreground">Your recent food searches</p>
-              </div>
-              <Button
-                variant="outline"
-                iconName="Trash2"
-                iconPosition="left"
-                onClick={() => console.log('Clear all history')}
-              >
-                Clear All
-              </Button>
-            </div>
-            <div className="space-y-4">
-              <AnimatePresence>
-                {mockSearchHistory?.map((search) => (
-                  <SearchHistoryItem
-                    key={search?.id}
-                    search={search}
-                    onReSearch={handleReSearch}
-                    onRemove={handleRemoveHistory}
-                  />
-                ))}
-              </AnimatePresence>
-            </div>
-          </div>
-        );
+      case "history":
+        return mockSearchHistory.map((h) => <SearchHistoryItem key={h.id} search={h} />);
 
-      case 'comparisons':
-        return (
-          <div>
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h3 className="text-2xl font-bold text-foreground">Food Comparisons</h3>
-                <p className="text-muted-foreground">Your comparison analysis history</p>
-              </div>
-              <Button
-                variant="default"
-                iconName="GitCompare"
-                iconPosition="left"
-                onClick={() => handleNavigation('/food-comparison-tool')}
-              >
-                New Comparison
-              </Button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <AnimatePresence>
-                {mockComparisons?.map((comparison) => (
-                  <ComparisonPreview
-                    key={comparison?.id}
-                    comparison={comparison}
-                    onViewFull={handleViewComparison}
-                    onRemove={handleRemoveComparison}
-                  />
-                ))}
-              </AnimatePresence>
-            </div>
-          </div>
-        );
+      case "comparisons":
+        return mockComparisons.map((c) => <ComparisonPreview key={c.id} comparison={c} />);
 
-      case 'preferences':
-        return (
-          <div>
-            <DietaryPreferences
-              preferences={mockPreferences}
-              onUpdate={handleUpdatePreferences}
-            />
-          </div>
-        );
+      case "preferences":
+        return <DietaryPreferences preferences={mockPreferences} />;
 
-      case 'achievements':
+      case "achievements":
         return (
-          <div>
-            <div className="mb-6">
-              <h3 className="text-2xl font-bold text-foreground mb-2">Achievements</h3>
-              <p className="text-muted-foreground">Track your healthy eating journey</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {mockAchievements?.map((achievement) => (
-                <AchievementBadge
-                  key={achievement?.id}
-                  achievement={achievement}
-                  isUnlocked={achievement?.isUnlocked}
-                  progress={achievement?.progress}
-                />
-              ))}
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {mockAchievements.map((a) => (
+              <AchievementBadge key={a.id} achievement={a} />
+            ))}
           </div>
         );
 
@@ -487,89 +211,35 @@ const UserDashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header
-        user={mockUser}
-        onNavigate={handleNavigation}
-        searchProps={{
-          onSearch: handleSearch,
-          onSearchToggle: () => setIsSearchExpanded(!isSearchExpanded),
-          placeholder: "Search for food alternatives...",
-          isLoading: false
-        }}
-      />
+      <Header onNavigate={handleNavigation} searchProps={{ onSearch: handleSearch }} />
+
       <main className="pt-20 pb-12">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <NavigationBreadcrumbs onNavigate={handleNavigation} />
-          
-          {/* Welcome Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="mb-8"
-          >
-            <div className="glass rounded-xl p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-3xl font-bold text-foreground mb-2">
-                    Welcome back, {mockUser?.name}! 👋
-                  </h1>
-                  <p className="text-muted-foreground">
-                    You've discovered {mockUser?.totalSearches} food alternatives since joining in {mockUser?.joinDate}
-                  </p>
-                </div>
-                <div className="hidden md:flex items-center space-x-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-accent">{mockUser?.favoriteCount}</div>
-                    <p className="text-xs text-muted-foreground">Favorites</p>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-secondary">{mockUser?.comparisonCount}</div>
-                    <p className="text-xs text-muted-foreground">Comparisons</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+
+          <motion.div className="glass p-6 rounded-xl mb-8">
+            <h1 className="text-3xl font-bold mb-2">Welcome back, {mockUser.name}! 👋</h1>
+            <p className="text-muted-foreground">
+              You've discovered {mockUser.totalSearches} alternatives since {mockUser.joinDate}
+            </p>
           </motion.div>
 
-          {/* Tab Navigation */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="mb-8"
-          >
-            <div className="glass rounded-xl p-2">
-              <nav className="flex space-x-1 overflow-x-auto" role="tablist">
-                {tabs?.map((tab) => (
-                  <button
-                    key={tab?.id}
-                    onClick={() => setActiveTab(tab?.id)}
-                    className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap ${
-                      activeTab === tab?.id
-                        ? 'bg-accent/20 text-accent shadow-neon'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
-                    }`}
-                    role="tab"
-                    aria-selected={activeTab === tab?.id}
-                  >
-                    <Icon name={tab?.icon} size={18} />
-                    <span>{tab?.label}</span>
-                  </button>
-                ))}
-              </nav>
-            </div>
-          </motion.div>
+          <div className="glass p-2 rounded-xl mb-8 flex overflow-x-auto space-x-1">
+            {tabs.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setActiveTab(t.id)}
+                className={`px-4 py-3 rounded-lg ${
+                  activeTab === t.id ? "bg-accent/20 text-accent" : "text-muted-foreground"
+                }`}
+              >
+                <Icon name={t.icon} size={18} />
+                {t.label}
+              </button>
+            ))}
+          </div>
 
-          {/* Tab Content */}
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            {renderTabContent()}
-          </motion.div>
+          {renderTabContent()}
         </div>
       </main>
     </div>
