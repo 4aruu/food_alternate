@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 import Header from '../../components/ui/Header';
 import NavigationBreadcrumbs from '../../components/ui/NavigationBreadcrumbs';
@@ -10,9 +10,8 @@ import QuickActions from './components/QuickActions';
 
 const FoodSearchResults = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  
-  // State management
+
+  // State
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({
     dietary: [],
@@ -20,237 +19,153 @@ const FoodSearchResults = () => {
     sustainability: 'all',
     sortBy: 'relevance'
   });
+
   const [results, setResults] = useState([]);
+  const [backupResults, setBackupResults] = useState([]); // to reset
   const [isLoading, setIsLoading] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [showComparison, setShowComparison] = useState(false);
   const [selectedItems, setSelectedItems] = useState([]);
-  const [hasMore, setHasMore] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
 
+  //  Fetch all foods on first load
   useEffect(() => {
-  const fetchResults = async () => {
+    const fetchResults = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch("http://127.0.0.1:8000/foods");
+        const data = await response.json();
+        setResults(data);
+        setBackupResults(data);
+      } catch (error) {
+        console.error("Failed to load foods:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchResults();
+  }, []);
+
+  //  Backend search handler
+  const performSearch = async (query) => {
+    setSearchQuery(query);
+    setIsLoading(true);
+
     try {
-      const response = await fetch("http://127.0.0.1:8000/foods");
-      const data = await response.json();
+      const res = await fetch(`http://127.0.0.1:8000/foods/search?q=${query}`);
+      const data = await res.json();
       setResults(data);
-    } catch (error) {
-      console.error("Failed to load foods:", error);
+    } catch (err) {
+      console.error("Search failed:", err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  fetchResults();
-}, []);
+  // Called by Search Header
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+    performSearch(query);
 
-  // Perform search with loading states
-  const performSearch = async (query) => {
-    setIsLoading(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      let filteredResults = mockResults?.filter(item =>
-        item?.name?.toLowerCase()?.includes(query?.toLowerCase()) ||
-        item?.alternativeTo?.toLowerCase()?.includes(query?.toLowerCase()) ||
-        item?.dietaryTags?.some(tag => tag?.toLowerCase()?.includes(query?.toLowerCase()))
-      );
-      
-      setResults(filteredResults);
-      setIsLoading(false);
-    }, 1000);
+    window.history.pushState(null, '', `/food-search-results?q=${encodeURIComponent(query)}`);
   };
 
-  // Handle search changes
   const handleSearchChange = (query) => {
     setSearchQuery(query);
   };
 
-  const handleSearch = (query) => {
-    setSearchQuery(query);
-    performSearch(query);
-    
-    // Update URL
-    const newUrl = `/food-search-results?q=${encodeURIComponent(query)}`;
-    window.history?.pushState(null, '', newUrl);
-  };
 
-  // Handle filter changes
+  //  Local filtering based on backend fields
   const handleFiltersChange = (newFilters) => {
     setFilters(newFilters);
-    // Apply filters to results
-    applyFilters(newFilters);
-  };
 
-  const applyFilters = (filterOptions) => {
-    let filteredResults = [...mockResults];
+    let filtered = [...backupResults];
 
-    // Apply dietary filters
-    if (filterOptions?.dietary?.length > 0) {
-      filteredResults = filteredResults?.filter(item =>
-        filterOptions?.dietary?.some(diet =>
-          item?.dietaryTags?.some(tag =>
-            tag?.toLowerCase()?.includes(diet?.toLowerCase())
-          )
-        )
-      );
-    }
-
-    // Apply allergen exclusions
-    if (filterOptions?.allergens?.length > 0) {
-      filteredResults = filteredResults?.filter(item =>
-        !filterOptions?.allergens?.some(allergen =>
-          item?.allergens?.some(itemAllergen =>
-            itemAllergen?.toLowerCase()?.includes(allergen?.toLowerCase())
-          )
-        )
-      );
-    }
-
-    // Apply sustainability filter
-    if (filterOptions?.sustainability !== 'all') {
-      filteredResults = filteredResults?.filter(item => {
-        switch (filterOptions?.sustainability) {
-          case 'eco-friendly':
-            return item?.sustainabilityScore >= 8.5;
-          case 'carbon-neutral':
-            return item?.sustainabilityScore >= 9.0;
-          default:
-            return true;
-        }
+    // dietary = NOT IMPLEMENTED IN BACKEND YET
+    // allergens = implemented → check allergens table
+    if (newFilters.allergens.length > 0) {
+      filtered = filtered.filter(item => {
+        return !newFilters.allergens.some(allergen => {
+          return item.allergens && item.allergens[allergen] === true;
+        });
       });
     }
 
-    // Apply sorting
-    filteredResults?.sort((a, b) => {
-      switch (filterOptions?.sortBy) {
-        case 'nutrition-score':
-          return b?.nutritionScore - a?.nutritionScore;
-        case 'sustainability':
-          return b?.sustainabilityScore - a?.sustainabilityScore;
-        case 'popularity':
-          return b?.id - a?.id; // Mock popularity
-        default:
-          return 0;
-      }
-    });
+    // sustainability filter
+    if (newFilters.sustainability !== "all") {
+      filtered = filtered.filter(item => {
+        const score = item.sustainability?.sustainability_score || 0;
+        if (newFilters.sustainability === "eco-friendly") return score >= 70;
+        if (newFilters.sustainability === "carbon-neutral") return score >= 90;
+        return true;
+      });
+    }
 
-    setResults(filteredResults);
+    // sorting
+    if (newFilters.sortBy === "nutrition-score") {
+      filtered.sort((a, b) => (b.nutrition_score || 0) - (a.nutrition_score || 0));
+    }
+    if (newFilters.sortBy === "sustainability") {
+      filtered.sort(
+        (a, b) =>
+          (b.sustainability?.sustainability_score || 0) -
+          (a.sustainability?.sustainability_score || 0)
+      );
+    }
+
+    setResults(filtered);
   };
 
   // Navigation handlers
-  const handleNavigation = (path) => {
-    navigate(path);
-  };
+  const handleNavigation = (path) => navigate(path);
 
   const handleNutritionExplore = (food) => {
     navigate('/nutrition-explorer-modal', { state: { food } });
-  };
-
-  const handleAddToFavorites = (foodId, isFavorited) => {
-    setResults(prev =>
-      prev?.map(item =>
-        item?.id === foodId ? { ...item, isFavorited } : item
-      )
-    );
-  };
-
-  const handleShare = (food) => {
-    if (navigator.share) {
-      navigator.share({
-        title: `${food?.name} - Smart Alternatives Finder`,
-        text: `Check out this healthy alternative: ${food?.name} as a substitute for ${food?.alternativeTo}`,
-        url: window.location?.href
-      });
-    } else {
-      // Fallback to clipboard
-      navigator.clipboard?.writeText(
-        `${food?.name} - A healthy alternative to ${food?.alternativeTo}. Find more at ${window.location?.href}`
-      );
-    }
-  };
-
-  // Comparison handlers
-  const handleComparisonToggle = () => {
-    setShowComparison(!showComparison);
-    if (!showComparison) {
-      setSelectedItems([]);
-    }
   };
 
   const handleCompareToggle = (foodId, isSelected) => {
     if (isSelected) {
       setSelectedItems(prev => [...prev, foodId]);
     } else {
-      setSelectedItems(prev => prev?.filter(id => id !== foodId));
+      setSelectedItems(prev => prev.filter(id => id !== foodId));
     }
   };
 
   const handleCompareSelected = () => {
-    const selectedFoods = results?.filter(food => selectedItems?.includes(food?.id));
+    const selectedFoods = results.filter(item => selectedItems.includes(item.id));
     navigate('/food-comparison-tool', { state: { foods: selectedFoods } });
   };
 
-  // Load more functionality
-  const handleLoadMore = () => {
-    setLoadingMore(true);
-    // Simulate loading more results
-    setTimeout(() => {
-      setLoadingMore(false);
-      setHasMore(false); // For demo purposes
-    }, 1000);
-  };
-
-  // Quick actions
-  const handleExportResults = () => {
-    console.log('Exporting results...');
-  };
-
-  const handleShareResults = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: 'Food Search Results - Smart Alternatives Finder',
-        text: `Found ${results?.length} healthy food alternatives for "${searchQuery}"`,
-        url: window.location?.href
-      });
-    }
-  };
-
-  const handleSaveSearch = () => {
-    console.log('Saving search...');
-  };
-
-  const handleClearSelection = () => {
-    setSelectedItems([]);
-  };
+  const handleClearSelection = () => setSelectedItems([]);
 
   return (
     <div className="min-h-screen bg-background">
-      <Header 
+      <Header
         onNavigate={handleNavigation}
         searchProps={{
           onSearch: handleSearch,
           onSearchToggle: () => setShowMobileFilters(true)
         }}
       />
+
       <main className="pt-20 pb-8">
         <div className="container mx-auto px-6 lg:px-8">
-          {/* Breadcrumbs */}
+
           <NavigationBreadcrumbs onNavigate={handleNavigation} />
 
-          {/* Search Header */}
           <SearchHeader
             searchQuery={searchQuery}
             onSearchChange={handleSearchChange}
             onSearch={handleSearch}
-            resultCount={results?.length}
+            resultCount={results.length}
             isLoading={isLoading}
             onFilterToggle={() => setShowMobileFilters(!showMobileFilters)}
             showMobileFilters={showMobileFilters}
-            onComparisonToggle={handleComparisonToggle}
+            onComparisonToggle={() => setShowComparison(!showComparison)}
             showComparison={showComparison}
-            selectedCount={selectedItems?.length}
+            selectedCount={selectedItems.length}
           />
 
-          {/* Desktop Filters */}
           <div className="hidden lg:block">
             <SearchFilters
               filters={filters}
@@ -259,7 +174,6 @@ const FoodSearchResults = () => {
             />
           </div>
 
-          {/* Mobile Filters */}
           <SearchFilters
             filters={filters}
             onFiltersChange={handleFiltersChange}
@@ -268,32 +182,23 @@ const FoodSearchResults = () => {
             isMobile={true}
           />
 
-          {/* Results Grid */}
           <ResultsGrid
             results={results}
             isLoading={isLoading}
             onNutritionExplore={handleNutritionExplore}
-            onAddToFavorites={handleAddToFavorites}
-            onShare={handleShare}
             showComparison={showComparison}
             selectedItems={selectedItems}
             onCompareToggle={handleCompareToggle}
-            onLoadMore={handleLoadMore}
-            hasMore={hasMore}
-            loadingMore={loadingMore}
+            hasMore={false}
           />
         </div>
       </main>
-      {/* Quick Actions */}
+
       <QuickActions
-        selectedCount={selectedItems?.length}
+        selectedCount={selectedItems.length}
         onCompareSelected={handleCompareSelected}
-        onExportResults={handleExportResults}
-        onShareResults={handleShareResults}
         onClearSelection={handleClearSelection}
-        onSaveSearch={handleSaveSearch}
-        onNavigate={handleNavigation}
-        isVisible={showComparison || selectedItems?.length > 0}
+        isVisible={showComparison || selectedItems.length > 0}
       />
     </div>
   );

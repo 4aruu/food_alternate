@@ -1,107 +1,101 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import Icon from '../../components/AppIcon';
-import Image from '../../components/AppImage';
-import Header from '../../components/ui/Header';
-import NutritionChart from './components/NutritionChart';
-import AllergenAlert from './components/AllergenAlert';
-import SustainabilityMetrics from './components/SustainabilityMetrics';
-import ComparisonView from './components/ComparisonView';
-import ActionButtons from './components/ActionButtons';
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+
+import Icon from "../../components/AppIcon";
+import Image from "../../components/AppImage";
+import Header from "../../components/ui/Header";
+
+import NutritionChart from "./components/NutritionChart";
+import AllergenAlert from "./components/AllergenAlert";
+import SustainabilityMetrics from "./components/SustainabilityMetrics";
+import ComparisonView from "./components/ComparisonView";
+import ActionButtons from "./components/ActionButtons";
 
 const NutritionExplorerModal = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const modalRef = useRef(null);
-  
-  const [activeTab, setActiveTab] = useState('nutrition');
+
+  // ⭐ get ID of clicked food from navigation
+  const foodId = location.state?.food?.id;
+
+  const [activeTab, setActiveTab] = useState("nutrition");
   const [isLoading, setIsLoading] = useState(true);
   const [foodItem, setFoodItem] = useState(null);
   const [comparisonItems, setComparisonItems] = useState([]);
   const [isClosing, setIsClosing] = useState(false);
 
-
-
- useEffect(() => {
-  const fetchFood = async () => {
-    const res = await fetch(`http://127.0.0.1:8000/foods/${foodId}`);
-    const data = await res.json();
-    setFoodItem(data);
-  };
-  fetchFood();
-}, [foodId]);
-
-
+  // ⭐ Fetch food details by ID from backend
   useEffect(() => {
-    // Handle escape key
-    const handleEscape = (event) => {
-      if (event?.key === 'Escape') {
-        handleClose();
+    if (!foodId) return;
+
+    const fetchFood = async () => {
+      try {
+        setIsLoading(true);
+        const res = await fetch(`http://127.0.0.1:8000/foods/${foodId}`);
+        const data = await res.json();
+        setFoodItem(data);
+      } catch (err) {
+        console.error("Failed to load food:", err);
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    // Prevent body scroll when modal is open
-    document.body.style.overflow = 'hidden';
-    document.addEventListener('keydown', handleEscape);
+    fetchFood();
+  }, [foodId]);
+
+  // Escape key + disable scroll
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === "Escape") handleClose();
+    };
+
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", handleEscape);
 
     return () => {
-      document.body.style.overflow = 'unset';
-      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = "unset";
+      document.removeEventListener("keydown", handleEscape);
     };
   }, []);
 
   const handleClose = () => {
     setIsClosing(true);
-    setTimeout(() => {
-      navigate('/food-search-results');
-    }, 300);
+    setTimeout(() => navigate("/food-search-results"), 300);
   };
 
-  const handleOverlayClick = (event) => {
-    if (event?.target === event?.currentTarget) {
-      handleClose();
-    }
-  };
-
-  const handleNavigation = (path) => {
-    navigate(path);
-  };
-
-  const handleSave = async (item, saved) => {
-    console.log('Saving item:', item, 'Saved:', saved);
-    // Implement save logic here
-  };
-
-  const handleShare = async (item, platform) => {
-    console.log('Sharing item:', item, 'Platform:', platform);
-    // Implement share logic here
+  const handleOverlayClick = (e) => {
+    if (e.target === e.currentTarget) handleClose();
   };
 
   const handleAddToComparison = (item) => {
-    setComparisonItems(prev => {
-      const exists = prev?.find(existing => existing?.id === item?.id);
-      if (!exists && prev?.length < 3) {
-        return [...prev, item];
-      }
+    setComparisonItems((prev) => {
+      const exists = prev.find((f) => f.id === item.id);
+      if (!exists && prev.length < 3) return [...prev, item];
       return prev;
     });
-    console.log('Added to comparison:', item);
   };
 
-  const handleRemoveFromComparison = (itemId) => {
-    setComparisonItems(prev => prev?.filter(item => item?.id !== itemId));
+  const handleRemoveFromComparison = (id) => {
+    setComparisonItems((prev) => prev.filter((f) => f.id !== id));
   };
 
   const tabs = [
-    { id: 'nutrition', label: 'Nutrition', icon: 'BarChart3' },
-    { id: 'allergens', label: 'Allergens', icon: 'Shield' },
-    { id: 'sustainability', label: 'Sustainability', icon: 'Leaf' },
-    { id: 'comparison', label: 'Compare', icon: 'GitCompare', badge: comparisonItems?.length }
+    { id: "nutrition", label: "Nutrition", icon: "BarChart3" },
+    { id: "allergens", label: "Allergens", icon: "Shield" },
+    { id: "sustainability", label: "Sustainability", icon: "Leaf" },
+    {
+      id: "comparison",
+      label: "Compare",
+      icon: "GitCompare",
+      badge: comparisonItems.length,
+    },
   ];
 
   const renderTabContent = () => {
-    if (isLoading) {
+    if (isLoading || !foodItem) {
       return (
         <div className="flex items-center justify-center h-96">
           <div className="text-center">
@@ -115,19 +109,23 @@ const NutritionExplorerModal = () => {
     }
 
     switch (activeTab) {
-      case 'nutrition':
+      case "nutrition":
         return <NutritionChart foodItem={foodItem} />;
-      case 'allergens':
+
+      case "allergens":
         return <AllergenAlert foodItem={foodItem} />;
-      case 'sustainability':
+
+      case "sustainability":
         return <SustainabilityMetrics foodItem={foodItem} />;
-      case 'comparison':
+
+      case "comparison":
         return (
           <ComparisonView
             selectedItems={comparisonItems}
             onRemoveItem={handleRemoveFromComparison}
           />
         );
+
       default:
         return <NutritionChart foodItem={foodItem} />;
     }
@@ -135,7 +133,8 @@ const NutritionExplorerModal = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header onNavigate={handleNavigation} />
+      <Header onNavigate={(path) => navigate(path)} />
+
       <AnimatePresence>
         <motion.div
           initial={{ opacity: 0 }}
@@ -148,66 +147,69 @@ const NutritionExplorerModal = () => {
           <motion.div
             ref={modalRef}
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
-            animate={{ 
-              scale: isClosing ? 0.9 : 1, 
-              opacity: isClosing ? 0 : 1, 
-              y: isClosing ? 20 : 0 
+            animate={{
+              scale: isClosing ? 0.9 : 1,
+              opacity: isClosing ? 0 : 1,
+              y: isClosing ? 20 : 0,
             }}
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
             className="w-full max-w-7xl max-h-[90vh] glass rounded-2xl border border-glass-border shadow-glass-lg overflow-hidden"
-            onClick={(e) => e?.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
           >
-            {/* Modal Header */}
+            {/* HEADER */}
             <div className="glass-subtle border-b border-glass-border p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-4">
                   <div className="w-16 h-16 rounded-xl overflow-hidden shadow-glass">
                     <Image
-                      src={foodItem?.image || '/assets/images/no_image.png'}
-                      alt={foodItem?.name || 'Food item'}
+                      src={foodItem?.image}
+                      alt={foodItem?.name}
                       className="w-full h-full object-cover"
                     />
                   </div>
+
                   <div>
-                    <h1 className="text-2xl font-bold text-foreground">
-                      {foodItem?.name || 'Loading...'}
-                    </h1>
+                    <h1 className="text-2xl font-bold">{foodItem?.name}</h1>
+
                     <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                       <span>{foodItem?.brand}</span>
                       <span>•</span>
                       <span>{foodItem?.category}</span>
                       <span>•</span>
-                      <span>{foodItem?.servingSize}</span>
+                      <span>{foodItem?.serving_size}</span>
                     </div>
                   </div>
                 </div>
+
                 <button
                   onClick={handleClose}
-                  className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200"
-                  aria-label="Close modal"
+                  className="p-2 rounded-xl hover:bg-muted/50 transition-all"
                 >
                   <Icon name="X" size={24} />
                 </button>
               </div>
 
-              {/* Tab Navigation */}
+              {/* TAB BUTTONS */}
               <div className="flex flex-wrap gap-2">
-                {tabs?.map((tab) => (
+                {tabs.map((tab) => (
                   <button
-                    key={tab?.id}
-                    onClick={() => setActiveTab(tab?.id)}
-                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                      activeTab === tab?.id
-                        ? 'bg-accent/20 text-accent border border-accent/30 shadow-neon'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                    }`}
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all
+                      ${
+                        activeTab === tab.id
+                          ? "bg-accent/20 text-accent border border-accent/30"
+                          : "text-muted-foreground hover:bg-muted/30"
+                      }
+                    `}
                   >
-                    <Icon name={tab?.icon} size={16} />
-                    <span>{tab?.label}</span>
-                    {tab?.badge && tab?.badge > 0 && (
-                      <span className="bg-accent text-accent-foreground text-xs px-2 py-0.5 rounded-full">
-                        {tab?.badge}
+                    <Icon name={tab.icon} size={16} />
+                    <span>{tab.label}</span>
+
+                    {tab.badge > 0 && (
+                      <span className="bg-accent text-xs px-2 py-0.5 rounded-full">
+                        {tab.badge}
                       </span>
                     )}
                   </button>
@@ -215,7 +217,7 @@ const NutritionExplorerModal = () => {
               </div>
             </div>
 
-            {/* Modal Content */}
+            {/* CONTENT */}
             <div className="flex-1 overflow-y-auto">
               <div className="p-6">
                 <motion.div
@@ -230,12 +232,10 @@ const NutritionExplorerModal = () => {
               </div>
             </div>
 
-            {/* Modal Footer */}
+            {/* FOOTER */}
             <div className="glass-subtle border-t border-glass-border p-6">
               <ActionButtons
                 foodItem={foodItem}
-                onSave={handleSave}
-                onShare={handleShare}
                 onAddToComparison={handleAddToComparison}
                 onClose={handleClose}
               />
