@@ -21,60 +21,17 @@ const NutritionExplorerModal = () => {
   const [comparisonItems, setComparisonItems] = useState([]);
   const [isClosing, setIsClosing] = useState(false);
 
-  // Mock food item data
-  const mockFoodItem = {
-    id: 1,
-    name: 'Organic Almond Milk',
-    brand: 'Nature\'s Best',
-    image: 'https://images.unsplash.com/photo-1563636619-e9143da7973b?w=800',
-    category: 'Dairy Alternative',
-    servingSize: '1 cup (240ml)',
-    nutrition: {
-      calories: 39,
-      protein: 1.4,
-      carbohydrates: 3.4,
-      fat: 2.9,
-      fiber: 0.7,
-      sugar: 2.1,
-      sodium: 150,
-      calcium: 450,
-      vitaminE: 7.5,
-      caloriesPer100g: 16
-    },
-    allergens: {
-      dairy: false,
-      nuts: true,
-      gluten: false,
-      soy: false,
-      eggs: false,
-      shellfish: false
-    },
-    sustainability: {
-      overallScore: 78,
-      carbonFootprint: 2.1,
-      waterUsage: 130,
-      landUse: 0.6
-    },
-    sourcing: {
-      origin: 'California, USA',
-      transportation: 'Low-emission transport',
-      farmers: 'Supporting 12+ local almond farms'
-    },
-    certifications: ['Organic', 'Non-GMO', 'Sustainable Packaging'],
-    description: `A creamy, nutritious plant-based milk alternative made from premium California almonds. 
-    Rich in vitamin E and naturally lactose-free, this organic almond milk provides a delicious and 
-    sustainable option for your daily nutrition needs.`
+
+
+ useEffect(() => {
+  const fetchFood = async () => {
+    const res = await fetch(`http://127.0.0.1:8000/foods/${foodId}`);
+    const data = await res.json();
+    setFoodItem(data);
   };
+  fetchFood();
+}, [foodId]);
 
-  useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => {
-      setFoodItem(mockFoodItem);
-      setIsLoading(false);
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, []);
 
   useEffect(() => {
     // Handle escape key

@@ -28,151 +28,19 @@ const FoodSearchResults = () => {
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  // Mock data for food alternatives
-  const mockResults = [
-    {
-      id: 1,
-      name: 'Organic Almond Milk',
-      alternativeTo: 'Dairy Milk',
-      image: 'https://images.unsplash.com/photo-1563636619-e9143da7973b?w=400&h=300&fit=crop',
-      nutritionScore: 85,
-      sustainabilityScore: 9.2,
-      calories: 60,
-      protein: '1g',
-      carbs: '8g',
-      fat: '2.5g',
-      allergens: ['Tree Nuts'],
-      dietaryTags: ['Vegan', 'Gluten-Free', 'Non-GMO'],
-      priceRange: '$3.99 - $5.49',
-      isFavorited: false
-    },
-    {
-      id: 2,
-      name: 'Coconut Flour',
-      alternativeTo: 'Wheat Flour',
-      image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400&h=300&fit=crop',
-      nutritionScore: 78,
-      sustainabilityScore: 8.7,
-      calories: 120,
-      protein: '4g',
-      carbs: '16g',
-      fat: '3g',
-      allergens: [],
-      dietaryTags: ['Gluten-Free', 'Paleo', 'Keto-Friendly'],
-      priceRange: '$6.99 - $8.99',
-      isFavorited: true
-    },
-    {
-      id: 3,
-      name: 'Quinoa Pasta',
-      alternativeTo: 'Regular Pasta',
-      image: 'https://images.unsplash.com/photo-1551892374-ecf8754cf8b0?w=400&h=300&fit=crop',
-      nutritionScore: 92,
-      sustainabilityScore: 8.1,
-      calories: 220,
-      protein: '8g',
-      carbs: '44g',
-      fat: '2g',
-      allergens: [],
-      dietaryTags: ['Gluten-Free', 'High-Protein', 'Organic'],
-      priceRange: '$4.49 - $6.99',
-      isFavorited: false
-    },
-    {
-      id: 4,
-      name: 'Cashew Cheese',
-      alternativeTo: 'Dairy Cheese',
-      image: 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?w=400&h=300&fit=crop',
-      nutritionScore: 76,
-      sustainabilityScore: 8.9,
-      calories: 90,
-      protein: '3g',
-      carbs: '4g',
-      fat: '7g',
-      allergens: ['Tree Nuts'],
-      dietaryTags: ['Vegan', 'Raw', 'Probiotic'],
-      priceRange: '$7.99 - $9.99',
-      isFavorited: false
-    },
-    {
-      id: 5,
-      name: 'Stevia Sweetener',
-      alternativeTo: 'Sugar',
-      image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop',
-      nutritionScore: 95,
-      sustainabilityScore: 9.5,
-      calories: 0,
-      protein: '0g',
-      carbs: '0g',
-      fat: '0g',
-      allergens: [],
-      dietaryTags: ['Zero-Calorie', 'Natural', 'Diabetic-Friendly'],
-      priceRange: '$3.49 - $4.99',
-      isFavorited: true
-    },
-    {
-      id: 6,
-      name: 'Chickpea Flour',
-      alternativeTo: 'All-Purpose Flour',
-      image: 'https://images.unsplash.com/photo-1587735243615-c03f25aaff15?w=400&h=300&fit=crop',
-      nutritionScore: 88,
-      sustainabilityScore: 9.0,
-      calories: 356,
-      protein: '22g',
-      carbs: '53g',
-      fat: '6g',
-      allergens: [],
-      dietaryTags: ['Gluten-Free', 'High-Protein', 'Vegan'],
-      priceRange: '$2.99 - $4.49',
-      isFavorited: false
-    },
-    {
-      id: 7,
-      name: 'Oat Milk',
-      alternativeTo: 'Dairy Milk',
-      image: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400&h=300&fit=crop',
-      nutritionScore: 82,
-      sustainabilityScore: 8.8,
-      calories: 80,
-      protein: '3g',
-      carbs: '16g',
-      fat: '1.5g',
-      allergens: [],
-      dietaryTags: ['Vegan', 'Fiber-Rich', 'Beta-Glucan'],
-      priceRange: '$3.49 - $4.99',
-      isFavorited: false
-    },
-    {
-      id: 8,
-      name: 'Nutritional Yeast',
-      alternativeTo: 'Parmesan Cheese',
-      image: 'https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?w=400&h=300&fit=crop',
-      nutritionScore: 94,
-      sustainabilityScore: 9.3,
-      calories: 60,
-      protein: '8g',
-      carbs: '5g',
-      fat: '1g',
-      allergens: [],
-      dietaryTags: ['Vegan', 'B12-Fortified', 'Umami-Rich'],
-      priceRange: '$5.99 - $7.99',
-      isFavorited: true
-    }
-  ];
-
-  // Initialize search from URL params or location state
   useEffect(() => {
-    const urlParams = new URLSearchParams(location.search);
-    const query = urlParams?.get('q') || location?.state?.searchQuery || '';
-    
-    if (query) {
-      setSearchQuery(query);
-      performSearch(query);
-    } else {
-      // Show default results
-      setResults(mockResults);
+  const fetchResults = async () => {
+    try {
+      const response = await fetch("http://127.0.0.1:8000/foods");
+      const data = await response.json();
+      setResults(data);
+    } catch (error) {
+      console.error("Failed to load foods:", error);
     }
-  }, [location]);
+  };
+
+  fetchResults();
+}, []);
 
   // Perform search with loading states
   const performSearch = async (query) => {
