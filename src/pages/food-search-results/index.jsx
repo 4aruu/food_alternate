@@ -1,205 +1,139 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-
+import { useNavigate, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import Header from '../../components/ui/Header';
-import NavigationBreadcrumbs from '../../components/ui/NavigationBreadcrumbs';
-import SearchHeader from './components/SearchHeader';
-import SearchFilters from './components/SearchFilters';
-import ResultsGrid from './components/ResultsGrid';
-import QuickActions from './components/QuickActions';
+import Icon from '../../components/AppIcon';
+
+
+const FilterBadge = ({ label, active, onClick }) => (
+  <button
+    onClick={onClick}
+    className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 border backdrop-blur-md ${
+      active
+      ? 'bg-emerald-500 text-black border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.4)]'
+      : 'bg-white/5 text-gray-300 border-white/10 hover:bg-white/10 hover:text-white'
+    }`}
+  >
+    {label}
+  </button>
+);
+
+const ResultCard = ({ item, onClick }) => (
+  <motion.div
+    layout
+    initial={{ opacity: 0, scale: 0.9 }}
+    animate={{ opacity: 1, scale: 1 }}
+    whileHover={{ y: -5 }}
+    onClick={onClick}
+    className="group relative rounded-3xl overflow-hidden cursor-pointer backdrop-blur-xl transition-all duration-300 border bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20"
+  >
+    {/* Colorful Header */}
+    <div className={`h-40 w-full bg-gradient-to-br ${item.uiColor} relative p-6 flex items-center justify-center opacity-90 group-hover:opacity-100 transition-opacity`}>
+      <div className="text-6xl drop-shadow-lg filter transform group-hover:scale-110 transition-transform duration-300">
+        {item.uiIcon}
+      </div>
+      <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
+        <span className={`text-xs font-bold ${item.nutrition_score > 90 ? 'text-emerald-400' : 'text-amber-400'}`}>
+          {item.nutrition_score}% Match
+        </span>
+      </div>
+    </div>
+
+    {/* Card Content */}
+    <div className="p-6">
+      <h3 className="text-xl font-bold text-white mb-1 group-hover:text-emerald-400 transition-colors">
+        {item.name}
+      </h3>
+      <p className="text-sm text-gray-400 mb-4">{item.category}</p>
+
+      <div className="flex gap-4 text-sm text-gray-300 border-t border-white/10 pt-4">
+        <span>⚡ {item.calories} cal</span>
+        <span>💪 {item.protein}g prot</span>
+      </div>
+    </div>
+  </motion.div>
+);
 
 const FoodSearchResults = () => {
   const navigate = useNavigate();
+  const [results, setResults] = useState(MOCK_DATA);
+  const [activeFilter, setActiveFilter] = useState('All');
 
-  // State
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState({
-    dietary: [],
-    allergens: [],
-    sustainability: 'all',
-    sortBy: 'relevance'
-  });
-
-  const [results, setResults] = useState([]);
-  const [backupResults, setBackupResults] = useState([]); // to reset
-  const [isLoading, setIsLoading] = useState(false);
-  const [showMobileFilters, setShowMobileFilters] = useState(false);
-  const [showComparison, setShowComparison] = useState(false);
-  const [selectedItems, setSelectedItems] = useState([]);
-
-  //  Fetch all foods on first load
-  useEffect(() => {
-    const fetchResults = async () => {
-      try {
-        setIsLoading(true);
-        const response = await fetch("http://127.0.0.1:8000/foods");
-        const data = await response.json();
-        setResults(data);
-        setBackupResults(data);
-      } catch (error) {
-        console.error("Failed to load foods:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchResults();
-  }, []);
-
-  //  Backend search handler
-  const performSearch = async (query) => {
-    setSearchQuery(query);
-    setIsLoading(true);
-
-    try {
-      const res = await fetch(`http://127.0.0.1:8000/foods/search?q=${query}`);
-      const data = await res.json();
-      setResults(data);
-    } catch (err) {
-      console.error("Search failed:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Called by Search Header
-  const handleSearch = (query) => {
-    setSearchQuery(query);
-    performSearch(query);
-
-    window.history.pushState(null, '', `/food-search-results?q=${encodeURIComponent(query)}`);
-  };
-
-  const handleSearchChange = (query) => {
-    setSearchQuery(query);
-  };
-
-
-  //  Local filtering based on backend fields
-  const handleFiltersChange = (newFilters) => {
-    setFilters(newFilters);
-
-    let filtered = [...backupResults];
-
-    // dietary = NOT IMPLEMENTED IN BACKEND YET
-    // allergens = implemented → check allergens table
-    if (newFilters.allergens.length > 0) {
-      filtered = filtered.filter(item => {
-        return !newFilters.allergens.some(allergen => {
-          return item.allergens && item.allergens[allergen] === true;
-        });
-      });
-    }
-
-    // sustainability filter
-    if (newFilters.sustainability !== "all") {
-      filtered = filtered.filter(item => {
-        const score = item.sustainability?.sustainability_score || 0;
-        if (newFilters.sustainability === "eco-friendly") return score >= 70;
-        if (newFilters.sustainability === "carbon-neutral") return score >= 90;
-        return true;
-      });
-    }
-
-    // sorting
-    if (newFilters.sortBy === "nutrition-score") {
-      filtered.sort((a, b) => (b.nutrition_score || 0) - (a.nutrition_score || 0));
-    }
-    if (newFilters.sortBy === "sustainability") {
-      filtered.sort(
-        (a, b) =>
-          (b.sustainability?.sustainability_score || 0) -
-          (a.sustainability?.sustainability_score || 0)
-      );
-    }
-
-    setResults(filtered);
-  };
-
-  // Navigation handlers
-  const handleNavigation = (path) => navigate(path);
-
-  const handleNutritionExplore = (food) => {
-    navigate('/nutrition-explorer-modal', { state: { food } });
-  };
-
-  const handleCompareToggle = (foodId, isSelected) => {
-    if (isSelected) {
-      setSelectedItems(prev => [...prev, foodId]);
+  // Filter Logic
+  const handleFilterClick = (filter) => {
+    setActiveFilter(filter);
+    if (filter === 'All') {
+      setResults(MOCK_DATA);
     } else {
-      setSelectedItems(prev => prev.filter(id => id !== foodId));
+      setResults(MOCK_DATA.filter(item => item.tags.includes(filter)));
     }
   };
-
-  const handleCompareSelected = () => {
-    const selectedFoods = results.filter(item => selectedItems.includes(item.id));
-    navigate('/food-comparison-tool', { state: { foods: selectedFoods } });
-  };
-
-  const handleClearSelection = () => setSelectedItems([]);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-black text-white font-sans selection:bg-emerald-500/30">
+
+      {/* Background Ambience (The Aurora Glow) */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px]" />
+      </div>
+
       <Header
-        onNavigate={handleNavigation}
-        searchProps={{
-          onSearch: handleSearch,
-          onSearchToggle: () => setShowMobileFilters(true)
-        }}
+        onNavigate={(path) => navigate(path)}
+        searchProps={{ onSearch: () => {} }}
       />
 
-      <main className="pt-20 pb-8">
-        <div className="container mx-auto px-6 lg:px-8">
-
-          <NavigationBreadcrumbs onNavigate={handleNavigation} />
-
-          <SearchHeader
-            searchQuery={searchQuery}
-            onSearchChange={handleSearchChange}
-            onSearch={handleSearch}
-            resultCount={results.length}
-            isLoading={isLoading}
-            onFilterToggle={() => setShowMobileFilters(!showMobileFilters)}
-            showMobileFilters={showMobileFilters}
-            onComparisonToggle={() => setShowComparison(!showComparison)}
-            showComparison={showComparison}
-            selectedCount={selectedItems.length}
-          />
-
-          <div className="hidden lg:block">
-            <SearchFilters
-              filters={filters}
-              onFiltersChange={handleFiltersChange}
-              isVisible={true}
-            />
-          </div>
-
-          <SearchFilters
-            filters={filters}
-            onFiltersChange={handleFiltersChange}
-            isVisible={showMobileFilters}
-            onToggle={() => setShowMobileFilters(!showMobileFilters)}
-            isMobile={true}
-          />
-
-          <ResultsGrid
-            results={results}
-            isLoading={isLoading}
-            onNutritionExplore={handleNutritionExplore}
-            showComparison={showComparison}
-            selectedItems={selectedItems}
-            onCompareToggle={handleCompareToggle}
-            hasMore={false}
-          />
+      <main className="relative z-10 pt-28 px-6 pb-20 max-w-7xl mx-auto">
+        {/* Page Header */}
+        <div className="mb-12">
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-4xl md:text-5xl font-bold mb-4"
+          >
+            Found <span className="text-emerald-400">{results.length}</span> Alternatives
+          </motion.h1>
+          <p className="text-gray-400 text-lg">
+            AI-sorted based on nutritional value and sustainability.
+          </p>
         </div>
-      </main>
 
-      <QuickActions
-        selectedCount={selectedItems.length}
-        onCompareSelected={handleCompareSelected}
-        onClearSelection={handleClearSelection}
-        isVisible={showComparison || selectedItems.length > 0}
-      />
+        {/* Filters */}
+        <div className="flex gap-3 overflow-x-auto pb-8 mb-4 scrollbar-hide">
+          {['All', 'High Protein', 'Vegan', 'Dairy-Free'].map(filter => (
+            <FilterBadge
+              key={filter}
+              label={filter}
+              active={activeFilter === filter}
+              onClick={() => handleFilterClick(filter)}
+            />
+          ))}
+        </div>
+
+        {/* Results Grid */}
+        <motion.div
+          layout
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
+          <AnimatePresence>
+            {results.map((item) => (
+              <ResultCard
+                key={item.id}
+                item={item}
+                onClick={() => navigate('/nutrition-explorer-modal')}
+              />
+            ))}
+          </AnimatePresence>
+        </motion.div>
+
+        {/* Empty State (Only shows if filters hide everything) */}
+        {results.length === 0 && (
+          <div className="text-center py-20">
+             <div className="text-6xl mb-4">🔍</div>
+             <h3 className="text-2xl font-bold text-gray-300">No matches found</h3>
+          </div>
+        )}
+      </main>
     </div>
   );
 };
