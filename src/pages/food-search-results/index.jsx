@@ -25,30 +25,40 @@ const ResultCard = ({ item, onClick }) => (
     animate={{ opacity: 1, scale: 1 }}
     whileHover={{ y: -5 }}
     onClick={onClick}
-    className="group relative rounded-3xl overflow-hidden cursor-pointer backdrop-blur-xl transition-all duration-300 border bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20"
+    className="group relative h-80 rounded-3xl overflow-hidden cursor-pointer border border-white/10 hover:border-emerald-500/50 transition-all duration-300"
   >
-    {/* Colorful Header */}
-    <div className={`h-40 w-full bg-gradient-to-br ${item.uiColor} relative p-6 flex items-center justify-center opacity-90 group-hover:opacity-100 transition-opacity`}>
-      <div className="text-6xl drop-shadow-lg filter transform group-hover:scale-110 transition-transform duration-300">
-        {item.uiIcon}
-      </div>
-      <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
-        <span className={`text-xs font-bold ${item.nutrition_score > 90 ? 'text-emerald-400' : 'text-amber-400'}`}>
-          {item.nutrition_score}% Match
-        </span>
-      </div>
+    {/* --- IMAGE BACKGROUND --- */}
+    <div className="absolute inset-0">
+      <img
+        src={item.image}
+        alt={item.name}
+        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+        onError={(e) => {
+          e.target.onerror = null;
+          e.target.src = "https://placehold.co/600x400/1a1a1a/FFF?text=No+Image"; // Fallback if image fails
+        }}
+      />
+      {/* Dark Overlay so text is readable */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent opacity-90" />
     </div>
 
-    {/* Card Content */}
-    <div className="p-6">
+    {/* MATCH BADGE */}
+    <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 z-10">
+      <span className={`text-xs font-bold ${item.nutrition_score > 90 ? 'text-emerald-400' : 'text-amber-400'}`}>
+        {item.nutrition_score}% Match
+      </span>
+    </div>
+
+    {/* TEXT CONTENT (Pushed to bottom) */}
+    <div className="absolute bottom-0 left-0 right-0 p-6 z-10">
       <h3 className="text-xl font-bold text-white mb-1 group-hover:text-emerald-400 transition-colors">
         {item.name}
       </h3>
-      <p className="text-sm text-gray-400 mb-4">{item.category}</p>
+      <p className="text-sm text-gray-300 mb-4">{item.category}</p>
 
-      <div className="flex gap-4 text-sm text-gray-300 border-t border-white/10 pt-4">
-        <span>⚡ {item.calories} cal</span>
-        <span>💪 {item.protein}g prot</span>
+      <div className="flex gap-4 text-sm text-gray-400 border-t border-white/20 pt-4">
+        <span>⚡ {item.nutrition?.calories || 0} cal</span>
+        <span>💪 {item.nutrition?.protein || 0}g prot</span>
       </div>
     </div>
   </motion.div>
