@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Header from '../../components/ui/Header';
+import FlippingText from "../../components/ui/FlippingText";
 
 // --- FIX 1: Defined GlassCard OUTSIDE the component to stop flickering ---
 const GlassCard = ({ children, className = '', onClick, delay = 0 }) => (
@@ -100,10 +101,12 @@ const LandingPage = () => {
               <span className="text-sm font-medium text-white tracking-wide">The Future of Food is Here</span>
             </div>
 
-            {/* Main Headline - FIX 2: Solid White Text (No transparent gradients) */}
-            <h1 className="text-6xl md:text-8xl font-bold tracking-tight mb-8 text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
-              Eat Smarter. <br />
-              <span className="text-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.4)]">Live Better.</span>
+            <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 tracking-tight flex flex-col items-center">
+              <span>Eat Smarter.</span>
+
+              {/* The Animated Part */}
+              <FlippingText />
+
             </h1>
 
             <p className="text-xl md:text-2xl text-gray-300 max-w-2xl mx-auto leading-relaxed mb-12 font-light">
@@ -150,7 +153,7 @@ const LandingPage = () => {
 
       {/* Footer Simple */}
       <footer className="py-12 border-t border-white/10 text-center text-gray-500 text-sm">
-        <p>&copy; 2024 AltFinder. Designed for the future.</p>
+        <p>&copy; 2025 NutriSwap. Designed for the future.</p>
       </footer>
     </div>
   );
