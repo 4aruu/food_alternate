@@ -38,21 +38,47 @@ A modern React-based FOOD technology project utilizing the latest frontend techn
 ## 📁 Project Structure
 
 ```
-react_app/
-├── public/             # Static assets
-├── src/
-│   ├── components/     # Reusable UI components
-│   ├── pages/          # Page components
-│   ├── styles/         # Global styles and Tailwind configuration
-│   ├── App.jsx         # Main application component
-│   ├── Routes.jsx      # Application routes
-│   └── index.jsx       # Application entry point
-├── .env                # Environment variables
-├── index.html          # HTML template
-├── package.json        # Project dependencies and scripts
-├── tailwind.config.js  # Tailwind CSS configuration
-└── vite.config.js      # Vite configuration
-```
+food_alternate/
+│
+├── 🐍 backend/                  # Python FastAPI Backend
+│   ├── routers/
+│   │   └── foods.py             # API Endpoints
+│   ├── .env                     # Database Credentials
+│   ├── database.py              # DB Connection Logic
+│   ├── main.py                  # App Entry Point (CORS settings here)
+│   ├── models.py                # Database Tables (SQLAlchemy)
+│   ├── schemas.py               # Data Validation (Pydantic)
+│   └── seed.py                  # ⭐ The Script to populate your DB
+│
+└── ⚛️ frontend/                 # React + Vite Frontend
+    ├── public/
+    │   └── assets/
+    │       └── images/          # ⭐ SAVE YOUR FOOD PHOTOS HERE
+    │           ├── puttu.jpg
+    │           ├── biryani.jpg
+    │           └── ... (all 100+ images)
+    ├── src/
+    │   ├── components/
+    │   │   ├── ui/
+    │   │   │   └── Header.jsx   # The Main Navbar
+    │   │   └── AppIcon.jsx      # Icon Helper
+    │   ├── pages/               # Main Application Pages
+    │   │   ├── landing-page/
+    │   │   │   └── index.jsx    # Hero Section & Aurora Background
+    │   │   ├── food-search-results/
+    │   │   │   └── index.jsx    # Grid View (Fetches from DB)
+    │   │   ├── nutrition-explorer-modal/
+    │   │   │   └── index.jsx    # Detail View (Shows Large Image)
+    │   │   └── food-comparison-tool/
+    │   │       └── index.jsx    # Comparison Logic & Search
+    │   ├── styles/
+    │   │   └── index.css        # Global CSS (Scrollbars & Base)
+    │   ├── App.jsx              # Routing Setup
+    │   └── main.jsx             # React Entry Point
+    ├── index.html
+    ├── package.json
+    ├── tailwind.config.js       # Custom Colors & Animations
+    └── vite.config.js
 
 ## 🧩 Adding Routes
 
