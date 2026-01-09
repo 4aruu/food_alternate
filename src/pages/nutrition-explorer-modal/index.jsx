@@ -119,7 +119,7 @@ const AllergensView = ({ food }) => {
   );
 };
 
-// --- ⭐ 5. NEW: HEALTH-SMART ALTERNATIVES ENGINE ⭐ ---
+// ---  5. NEW: HEALTH-SMART ALTERNATIVES ENGINE  ---
 const HealthSmartAlternatives = ({ originalFoodId, originalFoodName }) => { // <--- ADDED originalFoodName
   const [alternatives, setAlternatives] = useState([]);
   const [activeGoal, setActiveGoal] = useState("general");
@@ -228,7 +228,7 @@ const HealthSmartAlternatives = ({ originalFoodId, originalFoodName }) => { // <
                       {activeGoal === 'weight' && <span className="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded border border-amber-500/30">Low Cal</span>}
                   </div>
 
-                  {/* ⭐ AI BUTTON HERE - Wrapped to stop navigation event ⭐ */}
+                  {/*  AI BUTTON HERE - Wrapped to stop navigation event  */}
                   <div onClick={(e) => e.stopPropagation()}>
                     <SmartSwapButton originalName={originalFoodName} alternativeName={alt.name} />
                   </div>
@@ -246,6 +246,7 @@ const HealthSmartAlternatives = ({ originalFoodId, originalFoodName }) => { // <
           )}
         </div>
       )}
+
     </div>
   );
 };

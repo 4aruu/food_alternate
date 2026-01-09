@@ -65,7 +65,6 @@ const AddFoodModal = ({ isOpen, onClose, onAddFood, allFoods = [], existingFoods
     () => allFoods.map(normalizeFood),
     [allFoods]
   );
-
   /* -------------------------------------------
      FILTER FOODS BASED ON SEARCH + CATEGORY
   --------------------------------------------*/
