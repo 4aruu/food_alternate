@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom'; // Added useLocation
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Header from '../../components/ui/Header';
 import Icon from '../../components/AppIcon';
-// 1. IMPORT THE HISTORY HELPER
 import { addToHistory } from '../../utils/history';
 
 // --- SUB-COMPONENTS ---
@@ -11,11 +10,10 @@ import { addToHistory } from '../../utils/history';
 const FilterBadge = ({ label, active, onClick }) => (
   <button
     onClick={onClick}
-    className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 border backdrop-blur-md ${
-      active
+    className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 border backdrop-blur-md ${active
       ? 'bg-emerald-500 text-black border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.4)]'
       : 'bg-white/5 text-gray-300 border-white/10 hover:bg-white/10 hover:text-white'
-    }`}
+      }`}
   >
     {label}
   </button>
@@ -62,12 +60,12 @@ const ResultCard = ({ item, onClick }) => (
 
       <div className="flex gap-4 text-xs text-gray-400 border-t border-white/20 pt-4">
         <span className="flex items-center gap-1">
-            <Icon name="Activity" size={12} className="text-emerald-500"/>
-            {item.nutrition?.calories || 0} cal
+          <Icon name="Activity" size={12} className="text-emerald-500" />
+          {item.nutrition?.calories || 0} cal
         </span>
         <span className="flex items-center gap-1">
-            <Icon name="Zap" size={12} className="text-yellow-500"/>
-            {item.nutrition?.protein || 0}g prot
+          <Icon name="Zap" size={12} className="text-yellow-500" />
+          {item.nutrition?.protein || 0}g prot
         </span>
       </div>
     </div>
@@ -91,7 +89,7 @@ const FoodSearchResults = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('http://127.0.0.1:8000/foods/'); // Added trailing slash for safety
+        const response = await fetch('http://127.0.0.1:8000/foods/');
         const data = await response.json();
         setAllFoods(data);
         // Don't set filteredResults here immediately, let the filter effect handle it
@@ -109,9 +107,9 @@ const FoodSearchResults = () => {
     const params = new URLSearchParams(location.search);
     const q = params.get("q");
     if (q) {
-        setSearchTerm(q);
+      setSearchTerm(q);
     } else {
-        setSearchTerm("");
+      setSearchTerm("");
     }
   }, [location.search]);
 
@@ -123,22 +121,22 @@ const FoodSearchResults = () => {
 
     // Filter by Category Button
     if (activeFilter !== 'All') {
-        if (activeFilter === 'High Protein') {
-            results = results.filter(item => (item.nutrition?.protein || 0) > 15);
-        } else if (activeFilter === 'Low Calorie') {
-            results = results.filter(item => (item.nutrition?.calories || 0) < 300);
-        } else {
-            results = results.filter(item => item.category === activeFilter);
-        }
+      if (activeFilter === 'High Protein') {
+        results = results.filter(item => (item.nutrition?.protein || 0) > 15);
+      } else if (activeFilter === 'Low Calorie') {
+        results = results.filter(item => (item.nutrition?.calories || 0) < 300);
+      } else {
+        results = results.filter(item => item.category === activeFilter);
+      }
     }
 
     // Filter by Search Term
     if (searchTerm) {
-        const lowerTerm = searchTerm.toLowerCase();
-        results = results.filter(item =>
-            item.name.toLowerCase().includes(lowerTerm) ||
-            item.category.toLowerCase().includes(lowerTerm)
-        );
+      const lowerTerm = searchTerm.toLowerCase();
+      results = results.filter(item =>
+        item.name.toLowerCase().includes(lowerTerm) ||
+        item.category.toLowerCase().includes(lowerTerm)
+      );
     }
 
     setFilteredResults(results);
@@ -167,9 +165,9 @@ const FoodSearchResults = () => {
             className="text-4xl md:text-5xl font-bold mb-4"
           >
             {searchTerm ? (
-                <>Results for "<span className="text-emerald-400">{searchTerm}</span>"</>
+              <>Results for "<span className="text-emerald-400">{searchTerm}</span>"</>
             ) : (
-                <>Found <span className="text-emerald-400">{filteredResults.length}</span> Alternatives</>
+              <>Found <span className="text-emerald-400">{filteredResults.length}</span> Alternatives</>
             )}
           </motion.h1>
           <p className="text-gray-400 text-lg">
@@ -191,38 +189,38 @@ const FoodSearchResults = () => {
 
         {/* Results Grid */}
         {isLoading ? (
-            <div className="text-center py-20 text-gray-500">Loading foods...</div>
+          <div className="text-center py-20 text-gray-500">Loading foods...</div>
         ) : (
-            <motion.div
+          <motion.div
             layout
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-            >
+          >
             <AnimatePresence>
-                {filteredResults.map((item) => (
+              {filteredResults.map((item) => (
                 // ... inside src/pages/food-search-results/index.jsx ...
 
                 <ResultCard
-                    key={item.id}
-                    item={item}
-                    onClick={() => {
-                        addToHistory(item);
-                        console.log("Saved to history:", item.name); // Debug log
+                  key={item.id}
+                  item={item}
+                  onClick={() => {
+                    addToHistory(item);
+                    console.log("Saved to history:", item.name); // Debug log
 
-                        // Then navigate
-                        navigate('/nutrition-explorer-modal', { state: { food: item } });
-                    }}
+                    // Then navigate
+                    navigate('/nutrition-explorer-modal', { state: { food: item } });
+                  }}
                 />
-                ))}
+              ))}
             </AnimatePresence>
-            </motion.div>
+          </motion.div>
         )}
 
         {/* Empty State */}
         {!isLoading && filteredResults.length === 0 && (
           <div className="text-center py-20 bg-white/5 rounded-3xl border border-white/10">
-             <div className="text-6xl mb-4">🔍</div>
-             <h3 className="text-2xl font-bold text-white">No matches found</h3>
-             <p className="text-gray-400 mt-2">Try adjusting your search or filters.</p>
+            <div className="text-6xl mb-4">🔍</div>
+            <h3 className="text-2xl font-bold text-white">No matches found</h3>
+            <p className="text-gray-400 mt-2">Try adjusting your search or filters.</p>
           </div>
         )}
       </main>

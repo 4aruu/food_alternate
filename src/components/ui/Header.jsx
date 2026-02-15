@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 import Icon from '../AppIcon';
 import UserMenu from './UserMenu';
 import MobileNavigation from './MobileNavigation';
@@ -31,9 +31,8 @@ const Header = ({ user = null }) => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // 2. FETCH DATABASE ON MOUNT (Hardcoded URL)
+  // 2. FETCH DATABASE ON MOUNT
   useEffect(() => {
-    // ✅ FIXED: Using direct localhost URL
     fetch('http://127.0.0.1:8000/foods/')
       .then(res => res.json())
       .then(data => setAllFoods(data))
@@ -47,7 +46,7 @@ const Header = ({ user = null }) => {
       const matches = allFoods.filter(food =>
         food.name.toLowerCase().includes(lowerTerm) ||
         food.category.toLowerCase().includes(lowerTerm)
-      ).slice(0, 6); // Limit to top 6 results
+      ).slice(0, 6); 
       setSuggestions(matches);
       setShowDropdown(true);
     } else {
@@ -112,30 +111,43 @@ const Header = ({ user = null }) => {
           <div className="flex items-center justify-between h-16 lg:h-20">
 
             {/* LOGO */}
-            <div className="flex-shrink-0 flex items-center">
-              <button onClick={() => handleNavigation('/')} className="flex items-center gap-3 group focus:outline-none">
-                <div className="relative w-10 h-10 bg-gradient-to-tr from-emerald-500 to-teal-400 rounded-xl flex items-center justify-center text-black shadow-lg shadow-emerald-500/20 group-hover:scale-110 transition-transform duration-300">
-                  <span className="text-xl">🍃</span>
-                </div>
-                <div className="hidden sm:block text-left">
-                  <h1 className="text-xl font-bold text-white tracking-tight group-hover:text-emerald-400 transition-colors">
-                    NutriAI
-                  </h1>
-                  <p className="text-[10px] uppercase tracking-widest text-gray-500 font-semibold group-hover:text-gray-400 transition-colors">
-                    Food Discovery
-                  </p>
-                </div>
-              </button>
-            </div>
+<div className="flex-shrink-0 flex items-center">
+  <Link to="/" className="flex items-center gap-3 group focus:outline-none">
 
-            {/* DESKTOP NAV */}
+    {/* 👇 UPDATED LOGO CONTAINER */}
+    <div className="relative w-10 h-10 rounded-xl overflow-hidden shadow-lg shadow-emerald-500/20 group-hover:scale-110 transition-transform duration-300">
+      <img
+        src="/nutriai.png"
+        alt="NutriAI Logo"
+        className="w-full h-full object-cover"
+        onError={(e) => {
+            // Fallback if image fails, show the gradient & leaf again
+            e.target.style.display = 'none';
+            e.target.parentNode.classList.add('bg-gradient-to-tr', 'from-emerald-500', 'to-teal-400', 'flex', 'items-center', 'justify-center');
+            e.target.parentNode.innerHTML = '<span class="text-xl">🍃</span>';
+        }}
+      />
+    </div>
+
+    <div className="hidden sm:block text-left">
+      <h1 className="text-xl font-bold text-white tracking-tight group-hover:text-emerald-400 transition-colors">
+        NutriAI
+      </h1>
+      <p className="text-[10px] uppercase tracking-widest text-gray-500 font-semibold group-hover:text-gray-400 transition-colors">
+        Food Discovery
+      </p>
+    </div>
+  </Link>
+</div>
+
+            {/* DESKTOP NAV (FIXED: Using Link) */}
             <nav className="hidden lg:flex items-center gap-2">
               {navigationItems.map((item) => {
                 const active = isActivePath(item.path);
                 return (
-                  <button
+                  <Link
                     key={item.path}
-                    onClick={() => handleNavigation(item.path)}
+                    to={item.path}
                     className={`
                       relative px-5 py-2.5 rounded-full text-sm font-semibold flex items-center gap-2 transition-all duration-300 border
                       ${active
@@ -146,7 +158,7 @@ const Header = ({ user = null }) => {
                   >
                     <Icon name={item.icon} size={18} className={active ? "animate-pulse" : ""} />
                     {item.label}
-                  </button>
+                  </Link>
                 );
               })}
             </nav>

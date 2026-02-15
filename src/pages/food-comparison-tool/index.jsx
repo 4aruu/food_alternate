@@ -4,313 +4,285 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import Header from '../../components/ui/Header';
 import Icon from '../../components/AppIcon';
 
-// --- SUB-COMPONENTS ---
-
-// 1. The Add Food Modal (Now with SEARCH!)
-const AddFoodModal = ({ isOpen, onClose, onAdd, currentIds, allFoods }) => {
-  const [searchTerm, setSearchTerm] = useState("");
-
-  if (!isOpen) return null;
-
-  // Filter 1: Remove items already in comparison
-  // Filter 2: Match the search term (Name or Category)
-  const availableFoods = allFoods
-    .filter(f => !currentIds.includes(f.id))
-    .filter(f =>
-      f.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      f.category.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        className="bg-[#111] border border-white/10 w-full max-w-md rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[80vh]"
-      >
-        <div className="p-6 border-b border-white/10 flex justify-between items-center bg-[#1a1a1a]">
-          <h3 className="text-xl font-bold text-white">Add to Comparison</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-white"><Icon name="X" /></button>
-        </div>
-
-        {/* --- SEARCH BAR --- */}
-        <div className="p-4 border-b border-white/5 bg-[#111]">
-          <div className="relative">
-            <Icon name="Search" size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-            <input
-              type="text"
-              placeholder="Search foods (e.g., Biryani, Burger)..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white focus:outline-none focus:border-emerald-500 transition-colors"
-              autoFocus
-            />
-          </div>
-        </div>
-
-        <div className="p-4 overflow-y-auto space-y-3 custom-scrollbar">
-          {availableFoods.length === 0 ? (
-            <div className="text-center py-8">
-               <p className="text-gray-500">No matching foods found.</p>
-               {searchTerm && <p className="text-xs text-gray-600 mt-2">Try a different keyword.</p>}
-            </div>
-          ) : (
-            availableFoods.map(food => (
-              <div key={food.id} onClick={() => onAdd(food)} className="flex items-center gap-4 p-3 hover:bg-white/5 rounded-xl cursor-pointer transition-colors group border border-transparent hover:border-white/10">
-                {/* Food Image */}
-                <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-800 shrink-0">
-                    <img
-                        src={food.image}
-                        alt={food.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => e.target.src = "https://placehold.co/100?text=Food"}
-                    />
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-white font-medium truncate group-hover:text-emerald-400 transition-colors">{food.name}</h4>
-                  <p className="text-xs text-gray-400 truncate">{food.category}</p>
-                </div>
-
-                <div className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity bg-emerald-500/10">
-                    <Icon name="Plus" size={16} />
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </motion.div>
-    </div>
-  );
-};
-
-// 2. Comparison Card (Top Row Visuals)
-const ComparisonCard = ({ food, onRemove }) => (
-  <motion.div
-    layout
-    initial={{ opacity: 0, scale: 0.9 }}
-    animate={{ opacity: 1, scale: 1 }}
-    className="min-w-[200px] w-full bg-white/5 border border-white/10 rounded-3xl overflow-hidden relative group"
-  >
-    <div className="h-40 relative">
-      <img
-        src={food.image}
-        alt={food.name}
-        className="w-full h-full object-cover"
-        onError={(e) => e.target.src = "https://placehold.co/400?text=No+Image"}
-      />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-
-      <button
-        onClick={() => onRemove(food.id)}
-        className="absolute top-3 right-3 p-1.5 bg-black/40 hover:bg-red-500/80 backdrop-blur-md rounded-full text-white transition-colors border border-white/10"
-      >
-        <Icon name="X" size={14} />
-      </button>
-
-      <div className="absolute bottom-3 left-3 right-3">
-        <h3 className="font-bold text-lg text-white leading-tight mb-0.5">{food.name}</h3>
-        <p className="text-xs text-gray-400 uppercase tracking-wider">{food.category}</p>
-      </div>
-    </div>
-  </motion.div>
-);
-
-// 3. Stat Row (The Data Matrix)
-const StatRow = ({ label, property, foods, unit = "", lowerIsBetter = false }) => {
-  const values = foods.map(f => {
-    // Navigate deeply nested properties (e.g., sustainability.sustainability_score)
-    const parts = property.split('.');
-    let val = f;
-    for (const part of parts) {
-        val = val ? val[part] : 0;
-    }
-    return val || 0;
-  });
-
-  // Determine winner
-  const bestValue = lowerIsBetter ? Math.min(...values) : Math.max(...values);
-
-  return (
-    <div className="grid grid-cols-[120px_1fr] md:grid-cols-[150px_1fr] gap-4 py-4 border-b border-white/5 last:border-0 items-center hover:bg-white/5 transition-colors">
-      <div className="text-gray-400 font-medium text-sm pl-4 flex items-center gap-2">
-          {label}
-      </div>
-      <div className="grid" style={{ gridTemplateColumns: `repeat(${foods.length}, minmax(0, 1fr))` }}>
-        {foods.map((f, i) => {
-           const isWinner = values[i] === bestValue;
-           return (
-            <div key={i} className={`text-center px-2 flex flex-col items-center justify-center ${isWinner ? 'scale-110' : ''}`}>
-              <span className={`text-sm font-bold ${isWinner ? 'text-emerald-400' : 'text-white'}`}>
-                {values[i]}{unit}
-              </span>
-              {isWinner && <div className="h-1 w-1 rounded-full bg-emerald-500 mt-1" />}
-            </div>
-           );
-        })}
-      </div>
-    </div>
-  );
-};
-
-// --- MAIN PAGE ---
 const FoodComparisonTool = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
+    const navigate = useNavigate();
+    const location = useLocation();
 
-  // State
-  const [allFoods, setAllFoods] = useState([]); // Database Data
-  const [comparedFoods, setComparedFoods] = useState([]); // Selected Foods
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+    const [allFoods, setAllFoods] = useState([]);
+    const [comparedFoods, setComparedFoods] = useState([]);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState("");
 
-  // 1. Fetch ALL foods from Backend on mount
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch('http://127.0.0.1:8000/foods');
-        const data = await response.json();
-        setAllFoods(data);
+    // 1. Fetch Data
+    useEffect(() => {
+        fetch('http://127.0.0.1:8000/foods/')
+            .then(res => res.json())
+            .then(data => setAllFoods(data))
+            .catch(err => console.error('Failed to load foods', err));
+    }, []);
 
-        // If items were passed via navigation (e.g. from Search), load them
-        if (location.state?.foods) {
-            setComparedFoods(location.state.foods);
+    // 2. Handle URL Params & State
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const item1 = params.get('item1');
+        const item2 = params.get('item2');
+        const passedState = location.state?.foods;
+
+        if (passedState && passedState.length > 0) {
+            setComparedFoods(passedState);
+        } else if ((item1 || item2) && allFoods.length > 0) {
+            const foods = [];
+            if (item1) {
+                const food = allFoods.find(f => f.name.toLowerCase() === item1.toLowerCase());
+                if (food) foods.push(food);
+            }
+            if (item2) {
+                const food = allFoods.find(f => f.name.toLowerCase() === item2.toLowerCase());
+                if (food) foods.push(food);
+            }
+            const uniqueFoods = [...new Map(foods.map(item => [item.id, item])).values()];
+            if (uniqueFoods.length > 0) setComparedFoods(uniqueFoods);
         }
-      } catch (error) {
-        console.error("Error fetching foods:", error);
-      } finally {
-        setIsLoading(false);
-      }
+    }, [location.search, location.state, allFoods]);
+
+    const handleAddFood = (food) => {
+        if (comparedFoods.length < 4 && !comparedFoods.find(f => f.id === food.id)) {
+            setComparedFoods([...comparedFoods, food]);
+        }
+        setIsModalOpen(false);
+        setSearchTerm("");
     };
-    fetchData();
-  }, [location.state]);
 
-  const handleRemove = (id) => {
-    setComparedFoods(prev => prev.filter(f => f.id !== id));
-  };
+    const handleRemoveFood = (foodId) => {
+        setComparedFoods(comparedFoods.filter(f => f.id !== foodId));
+    };
 
-  const handleAdd = (food) => {
-    setComparedFoods(prev => [...prev, food]);
-    setIsModalOpen(false);
-  };
+    // Helper to find the "best" value for highlighting
+    const getBestStyle = (metric, val, foods) => {
+        if (!foods.length || val === undefined) return "text-white";
+        const cleanVal = parseFloat(val);
+        if (isNaN(cleanVal)) return "text-white";
 
-  return (
-    <div className="min-h-screen bg-black text-white font-sans selection:bg-emerald-500/30">
+        const values = foods.map(f => parseFloat(f.nutrition?.[metric] || 0));
 
-      {/* Background Glow */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-20%] left-[30%] w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[120px] animate-blob" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px]" />
-      </div>
+        const isLowGood = ['calories', 'fat', 'sodium', 'sugar'].includes(metric);
+        const bestVal = isLowGood ? Math.min(...values) : Math.max(...values);
 
-      <Header onNavigate={(path) => navigate(path)} />
+        return cleanVal === bestVal ? "text-emerald-400 font-bold" : "text-white";
+    };
 
-      <main className="relative z-10 pt-28 px-6 pb-20 max-w-7xl mx-auto">
+    return (
+        <div className="min-h-screen bg-black text-white font-sans selection:bg-emerald-500/30">
+            <Header onNavigate={(path) => navigate(path)} />
 
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row items-center justify-between mb-12 gap-6">
-          <div>
-            <motion.h1
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="text-4xl font-bold mb-2"
-            >
-              Comparison <span className="text-emerald-400">Lab</span>
-            </motion.h1>
-            <p className="text-gray-400">Compare nutrition, sustainability, and safety.</p>
-          </div>
+            <main className="relative z-10 pt-28 px-6 pb-20 max-w-7xl mx-auto">
 
-          <div className="flex gap-3">
-             <button
-                onClick={() => setIsModalOpen(true)}
-                disabled={comparedFoods.length >= 4}
-                className="px-6 py-3 bg-emerald-500 text-black font-bold rounded-full hover:bg-emerald-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg shadow-emerald-500/20"
-              >
-                <Icon name="Plus" size={18} /> Add Food
-             </button>
-             {comparedFoods.length > 0 && (
-               <button
-                  onClick={() => setComparedFoods([])}
-                  className="px-6 py-3 border border-white/20 rounded-full hover:bg-white/10 transition-colors text-sm font-medium"
-               >
-                 Clear
-               </button>
-             )}
-          </div>
+                {/* --- HEADER SECTION --- */}
+                <div className="flex flex-col md:flex-row items-end justify-between mb-8 gap-4">
+                    <div>
+                        <h1 className="text-4xl font-bold mb-2">
+                            Comparison <span className="text-emerald-400">Lab</span>
+                        </h1>
+                        <p className="text-gray-400">Compare nutrition, sustainability, and safety.</p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        {comparedFoods.length > 0 && (
+                            <button
+                                onClick={() => setComparedFoods([])}
+                                className="px-6 py-2.5 rounded-full border border-white/20 text-sm font-medium hover:bg-white/5 transition-all"
+                            >
+                                Clear
+                            </button>
+                        )}
+                        <button
+                            onClick={() => setIsModalOpen(true)}
+                            disabled={comparedFoods.length >= 4}
+                            className={`px-6 py-2.5 rounded-full text-sm font-bold flex items-center gap-2 transition-all ${comparedFoods.length >= 4
+                                ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                                : 'bg-emerald-500 hover:bg-emerald-400 text-black shadow-[0_0_20px_rgba(16,185,129,0.2)]'
+                                }`}
+                        >
+                            <Icon name="Plus" size={18} /> Add Food
+                        </button>
+                    </div>
+                </div>
+
+                {/* --- COMPARISON MATRIX CONTAINER --- */}
+                <div className="bg-[#0a0a0a] border border-white/10 rounded-3xl p-8 overflow-x-auto">
+
+                    {/* 1. SELECTED ITEMS ROW */}
+                    <div className="grid grid-cols-[150px_repeat(4,1fr)] gap-8 mb-12 min-w-[800px]">
+                        <div className="flex items-center text-xs font-bold text-gray-500 uppercase tracking-widest">
+                            Selected Items
+                        </div>
+
+                        {[0, 1, 2, 3].map(i => {
+                            const food = comparedFoods[i];
+                            return (
+                                <div key={i} className="relative h-40 rounded-2xl bg-[#111] border border-white/5 flex items-center justify-center group overflow-hidden">
+                                    {food ? (
+                                        <>
+                                            <img src={food.image} alt={food.name} className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-40 transition-opacity" />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent" />
+
+                                            <button
+                                                onClick={() => handleRemoveFood(food.id)}
+                                                className="absolute top-2 right-2 p-1.5 bg-black/50 backdrop-blur-md rounded-full text-white/70 hover:text-red-400 hover:bg-black transition-all z-20"
+                                            >
+                                                <Icon name="X" size={14} />
+                                            </button>
+
+                                            <div className="absolute bottom-4 left-4 z-10">
+                                                <h3 className="font-bold text-lg leading-tight mb-1">{food.name}</h3>
+                                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider bg-white/10 px-2 py-1 rounded">
+                                                    {food.category}
+                                                </span>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <button
+                                            onClick={() => setIsModalOpen(true)}
+                                            className="flex flex-col items-center gap-2 text-gray-600 hover:text-emerald-500 transition-colors"
+                                        >
+                                            <div className="w-10 h-10 rounded-full border-2 border-dashed border-current flex items-center justify-center">
+                                                <Icon name="Plus" size={20} />
+                                            </div>
+                                            <span className="text-xs font-medium">Add Item</span>
+                                        </button>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {/* 2. NUTRITION SECTION */}
+                    <div className="mb-10 min-w-[800px]">
+                        <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm tracking-widest mb-6 uppercase">
+                            <Icon name="Activity" size={16} /> Nutrition
+                        </div>
+
+                        {[
+                            { label: 'Calories', key: 'calories', unit: ' kcal' },
+                            { label: 'Protein', key: 'protein', unit: 'g' },
+                            { label: 'Fats', key: 'fat', unit: 'g' },
+                            { label: 'Carbs', key: 'carbohydrates', unit: 'g' },
+                            { label: 'Sugar', key: 'sugar', unit: 'g' },
+                            { label: 'Sodium', key: 'sodium', unit: 'mg' },
+                        ].map(metric => (
+                            <div key={metric.key} className="grid grid-cols-[150px_repeat(4,1fr)] gap-8 py-5 border-b border-white/5 hover:bg-white/5 transition-colors">
+                                <div className="text-gray-400 font-medium text-sm self-center">{metric.label}</div>
+                                {[0, 1, 2, 3].map(i => {
+                                    const food = comparedFoods[i];
+                                    if (!food) return <div key={i}></div>;
+
+                                    const val = food.nutrition?.[metric.key] || 0;
+                                    const style = getBestStyle(metric.key, val, comparedFoods);
+
+                                    return (
+                                        <div key={i} className={`text-center text-lg font-mono ${style}`}>
+                                            {val}{metric.unit}
+                                            {style.includes('emerald') && <span className="block w-1.5 h-1.5 bg-emerald-500 rounded-full mx-auto mt-1" />}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* 3. SUSTAINABILITY SECTION */}
+                    <div className="min-w-[800px]">
+                        <div className="flex items-center gap-2 text-blue-400 font-bold text-sm tracking-widest mb-6 uppercase">
+                            <Icon name="Leaf" size={16} /> Sustainability
+                        </div>
+
+                        <div className="grid grid-cols-[150px_repeat(4,1fr)] gap-8 py-5 border-b border-white/5 hover:bg-white/5 transition-colors">
+                            <div className="text-gray-400 font-medium text-sm self-center">Eco Score</div>
+                            {[0, 1, 2, 3].map(i => {
+                                const food = comparedFoods[i];
+                                if (!food) return <div key={i}></div>;
+                                return (
+                                    <div key={i} className="text-center font-bold text-lg text-emerald-400">
+                                        {food.sustainability_score}/100
+                                        <span className="block w-1.5 h-1.5 bg-emerald-500 rounded-full mx-auto mt-1" />
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        <div className="grid grid-cols-[150px_repeat(4,1fr)] gap-8 py-5 border-b border-white/5 hover:bg-white/5 transition-colors">
+                            <div className="text-gray-400 font-medium text-sm self-center">CO2</div>
+                            {[0, 1, 2, 3].map(i => {
+                                const food = comparedFoods[i];
+                                if (!food) return <div key={i}></div>;
+                                return (
+                                    <div key={i} className="text-center font-mono text-lg text-white">
+                                        {food.sustainability?.carbon_footprint} kg
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                </div>
+
+                {/* --- ADD FOOD MODAL --- */}
+                <AnimatePresence>
+                    {isModalOpen && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                className="bg-[#1a1a1a] w-full max-w-lg rounded-3xl border border-white/10 overflow-hidden shadow-2xl"
+                            >
+                                <div className="p-6 border-b border-white/10 flex justify-between items-center">
+                                    <h3 className="text-xl font-bold text-white">Add Food to Compare</h3>
+                                    <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-white"><Icon name="X" size={20} /></button>
+                                </div>
+                                <div className="p-4 bg-black/20">
+                                    <div className="flex items-center bg-[#111] border border-white/10 rounded-xl px-4 py-3 focus-within:border-emerald-500/50 transition-colors">
+                                        <Icon name="Search" size={18} className="text-gray-500 mr-3" />
+                                        <input
+                                            type="text"
+                                            placeholder="Search foods..."
+                                            autoFocus
+                                            className="bg-transparent border-none outline-none text-white w-full placeholder-gray-600"
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="h-80 overflow-y-auto p-2 custom-scrollbar">
+                                    {allFoods
+                                        .filter(f => f.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                                        .filter(f => !comparedFoods.find(c => c.id === f.id))
+                                        .map(food => (
+                                            <button
+                                                key={food.id}
+                                                onClick={() => handleAddFood(food)}
+                                                className="w-full flex items-center gap-4 p-3 hover:bg-white/5 rounded-xl transition-colors text-left group"
+                                            >
+                                                <img src={food.image} className="w-12 h-12 rounded-lg object-cover bg-white/5" alt="" />
+                                                <div>
+                                                    <h4 className="font-bold text-white group-hover:text-emerald-400 transition-colors">{food.name}</h4>
+                                                    <p className="text-xs text-gray-500">{food.category} • {food.nutrition_score} Score</p>
+                                                </div>
+                                                <div className="ml-auto text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <Icon name="Plus" size={20} />
+                                                </div>
+                                            </button>
+                                        ))
+                                    }
+                                </div>
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>
+
+            </main>
         </div>
-
-        {/* --- COMPARISON VIEW --- */}
-        {comparedFoods.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-32 bg-white/5 rounded-3xl border border-white/10 border-dashed backdrop-blur-sm">
-            <div className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center mb-6 text-emerald-400">
-                <Icon name="GitCompare" size={40} />
-            </div>
-            <h3 className="text-2xl font-bold text-white mb-2">Start Your Comparison</h3>
-            <p className="text-gray-400 mb-8 max-w-md text-center">Select foods from our database to analyze their nutritional and environmental impact side-by-side.</p>
-            <button
-                onClick={() => setIsModalOpen(true)}
-                className="px-8 py-3 bg-white text-black font-bold rounded-full hover:scale-105 transition-transform"
-            >
-                Add Your First Food
-            </button>
-          </div>
-        ) : (
-          <div className="bg-[#0a0a0a]/80 border border-white/10 rounded-3xl overflow-hidden backdrop-blur-xl shadow-2xl">
-
-            {/* 1. Visual Cards Row */}
-            <div className="grid p-6 gap-6 border-b border-white/10 bg-black/40" style={{ gridTemplateColumns: `150px repeat(${comparedFoods.length}, minmax(0, 1fr))` }}>
-              <div className="flex items-center text-gray-400 font-bold text-xs uppercase tracking-widest">Selected Items</div>
-              {comparedFoods.map(food => (
-                <ComparisonCard key={food.id} food={food} onRemove={handleRemove} />
-              ))}
-            </div>
-
-            {/* 2. Stats Grid */}
-            <div className="bg-transparent">
-               <div className="py-4 px-6 bg-white/5 text-xs font-bold text-emerald-400 uppercase tracking-widest border-y border-white/5 flex items-center gap-2">
-                   <Icon name="Activity" size={14} /> Nutrition
-               </div>
-               <StatRow label="Calories" property="nutrition.calories" foods={comparedFoods} unit=" kcal" lowerIsBetter={true} />
-               <StatRow label="Protein" property="nutrition.protein" foods={comparedFoods} unit="g" />
-               <StatRow label="Fats" property="nutrition.fat" foods={comparedFoods} unit="g" lowerIsBetter={true} />
-               <StatRow label="Carbs" property="nutrition.carbohydrates" foods={comparedFoods} unit="g" lowerIsBetter={true} />
-
-               <div className="py-4 px-6 bg-white/5 text-xs font-bold text-blue-400 uppercase tracking-widest border-y border-white/5 mt-4 flex items-center gap-2">
-                   <Icon name="Leaf" size={14} /> Sustainability
-               </div>
-               <StatRow label="Eco Score" property="sustainability_score" foods={comparedFoods} unit="/100" />
-               <StatRow label="CO2" property="sustainability.carbon_footprint" foods={comparedFoods} unit=" kg" lowerIsBetter={true} />
-               <StatRow label="Water" property="sustainability.water_usage" foods={comparedFoods} unit=" L" lowerIsBetter={true} />
-            </div>
-
-            {/* 3. Recommendation Panel */}
-            <div className="p-8 text-center bg-gradient-to-b from-emerald-900/10 to-transparent border-t border-white/10">
-              <h4 className="text-emerald-400 font-bold mb-2 flex items-center justify-center gap-2">
-                  <Icon name="Cpu" size={18} /> AI Analysis
-              </h4>
-              <p className="text-gray-300 text-sm max-w-2xl mx-auto leading-relaxed">
-                 <span className="text-white font-bold">{comparedFoods[0].name}</span> is being compared against <span className="text-white font-bold">{comparedFoods.length - 1} other items</span>.
-                 Check the green highlights above to see which item wins in each category!
-              </p>
-            </div>
-
-          </div>
-        )}
-      </main>
-
-      {/* The Modal */}
-      <AddFoodModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onAdd={handleAdd}
-        currentIds={comparedFoods.map(f => f.id)}
-        allFoods={allFoods}
-      />
-      <footer className="py-12 border-t border-white/10 text-center text-gray-500 text-sm">
-        <p>&copy; 2025 NutriSwap. Designed for the future.</p>
-      </footer>
-    </div>
-  );
+    );
 };
 
 export default FoodComparisonTool;
