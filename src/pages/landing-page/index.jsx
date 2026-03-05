@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, useInView } from 'framer-motion';
 import Header from '../../components/ui/Header';
+import LaptopDemo from './components/LaptopDemo';
 
 // Animated Counter Component
 const AnimatedCounter = ({ end, duration = 2, suffix = "+" }) => {
@@ -100,6 +101,7 @@ const ScrollSection = ({ children, className = "" }) => {
 const LandingPage = () => {
   const navigate = useNavigate();
   const [scrollProgress, setScrollProgress] = useState(0);
+  const demoRef = useRef(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -278,10 +280,10 @@ const LandingPage = () => {
               Start Exploring →
             </button>
             <button
-              onClick={() => handleNavigation('/food-comparison-tool')}
-              className="px-8 py-4 bg-white/5 border border-white/10 rounded-full font-bold text-lg hover:bg-white/10 transition-all"
+              onClick={() => demoRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+              className="px-8 py-4 bg-white/5 border border-white/10 rounded-full font-bold text-lg hover:bg-white/10 transition-all flex items-center gap-2"
             >
-              Watch Demo
+              <span>▶</span> Watch Demo
             </button>
           </motion.div>
 
@@ -293,6 +295,34 @@ const LandingPage = () => {
           >
             Scroll to discover the story ↓
           </motion.div>
+        </div>
+      </section>
+
+      {/* SECTION: LAPTOP DEMO */}
+      <section ref={demoRef} className="relative min-h-screen flex items-center justify-center px-6 py-20">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <motion.h2
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+              className="text-4xl md:text-5xl font-bold mb-4"
+            >
+              See it in <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">Action</span>
+            </motion.h2>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="text-gray-400 text-lg"
+            >
+              Watch how NutriAI transforms the way you discover food
+            </motion.p>
+            <div className="w-20 h-1 bg-gradient-to-r from-emerald-500 to-teal-500 mx-auto rounded-full mt-6" />
+          </div>
+          <LaptopDemo />
         </div>
       </section>
 
