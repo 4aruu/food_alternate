@@ -3,7 +3,7 @@ import Input from '../../../components/ui/Input';
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/AppIcon';
 
-const AccountDetailsForm = ({ formData = {}, onUpdate = () => {}, onNext = () => {} }) => {
+const AccountDetailsForm = ({ formData = {}, onUpdate = () => { }, onNext = () => { } }) => {
   const [data, setData] = useState({
     firstName: formData?.firstName || '',
     lastName: formData?.lastName || '',
@@ -50,7 +50,7 @@ const AccountDetailsForm = ({ formData = {}, onUpdate = () => {}, onNext = () =>
 
   const handleInputChange = (field, value) => {
     setData(prev => ({ ...prev, [field]: value }));
-    
+
     // Clear error when user starts typing
     if (errors?.[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
@@ -120,7 +120,7 @@ const AccountDetailsForm = ({ formData = {}, onUpdate = () => {}, onNext = () =>
       <div className="text-center mb-8">
         <h2 className="text-2xl font-bold text-foreground mb-2">Create Your Account</h2>
         <p className="text-muted-foreground">
-          Join Smart Alternatives Finder to discover personalized food substitutes
+          Join NutriSwap to discover personalized food substitutes
         </p>
       </div>
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -187,16 +187,15 @@ const AccountDetailsForm = ({ formData = {}, onUpdate = () => {}, onNext = () =>
               </div>
               <div className="w-full bg-muted/30 rounded-full h-2">
                 <div
-                  className={`h-2 rounded-full transition-all duration-300 ${
-                    passwordStrength <= 1
+                  className={`h-2 rounded-full transition-all duration-300 ${passwordStrength <= 1
                       ? 'bg-error'
                       : passwordStrength <= 2
-                      ? 'bg-warning'
-                      : passwordStrength <= 3
-                      ? 'bg-warning'
-                      : passwordStrength <= 4
-                      ? 'bg-success' :'bg-accent'
-                  }`}
+                        ? 'bg-warning'
+                        : passwordStrength <= 3
+                          ? 'bg-warning'
+                          : passwordStrength <= 4
+                            ? 'bg-success' : 'bg-accent'
+                    }`}
                   style={{ width: `${(passwordStrength / 5) * 100}%` }}
                 />
               </div>

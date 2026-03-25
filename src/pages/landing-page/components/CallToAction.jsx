@@ -4,7 +4,7 @@ import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 
-const CallToAction = ({ onNavigate = () => {} }) => {
+const CallToAction = ({ onNavigate = () => { } }) => {
   const [email, setEmail] = useState('');
   const [isSubscribed, setIsSubscribed] = useState(false);
 
@@ -102,7 +102,7 @@ const CallToAction = ({ onNavigate = () => {} }) => {
                   Get Started for Free
                 </h3>
                 <p className="text-muted-foreground mb-8 max-w-2xl mx-auto">
-                  Create your account and start discovering better food alternatives in seconds. 
+                  Create your account and start discovering better food alternatives in seconds.
                   No credit card required.
                 </p>
 
@@ -142,7 +142,7 @@ const CallToAction = ({ onNavigate = () => {} }) => {
                   >
                     Create Account
                   </Button>
-                  
+
                   <Button
                     variant="ghost"
                     size="lg"
@@ -166,7 +166,7 @@ const CallToAction = ({ onNavigate = () => {} }) => {
                   <Icon name="CheckCircle" size={32} className="text-success" />
                 </div>
                 <h3 className="text-2xl font-bold text-foreground mb-4">
-                  Welcome to Smart Alternatives!
+                  Welcome to NutriSwap!
                 </h3>
                 <p className="text-muted-foreground mb-6">
                   Thank you for joining us. Redirecting you to complete your registration...
@@ -214,7 +214,7 @@ const CallToAction = ({ onNavigate = () => {} }) => {
             transition={{ duration: 0.8, delay: 0.8 }}
             viewport={{ once: true }}
           >
-            By signing up, you agree to our Terms of Service and Privacy Policy. 
+            By signing up, you agree to our Terms of Service and Privacy Policy.
             Start your journey to healthier food choices today.
           </motion.p>
         </motion.div>

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Icon from '../AppIcon';
 import Image from '../AppImage';
 
-const UserMenu = ({ user = null, onNavigate = () => {} }) => {
+const UserMenu = ({ user = null, onNavigate = () => { } }) => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -56,7 +56,7 @@ const UserMenu = ({ user = null, onNavigate = () => {} }) => {
       label: 'Create Account',
       path: '/user-registration',
       icon: 'UserPlus',
-      description: 'Join Smart Alternatives Finder',
+      description: 'Join NutriSwap',
       variant: 'accent'
     }
   ];
@@ -107,11 +107,10 @@ const UserMenu = ({ user = null, onNavigate = () => {} }) => {
       {/* User Menu Trigger */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center space-x-2 p-2 rounded-xl transition-all duration-200 ${
-          isOpen 
-            ? 'bg-accent/20 text-accent shadow-neon' 
+        className={`flex items-center space-x-2 p-2 rounded-xl transition-all duration-200 ${isOpen
+            ? 'bg-accent/20 text-accent shadow-neon'
             : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-        }`}
+          }`}
         aria-label={user ? 'User menu' : 'Sign in menu'}
         aria-expanded={isOpen}
         aria-haspopup="true"
@@ -143,9 +142,9 @@ const UserMenu = ({ user = null, onNavigate = () => {} }) => {
             <span className="hidden sm:inline text-sm font-medium">Sign In</span>
           </>
         )}
-        <Icon 
-          name="ChevronDown" 
-          size={16} 
+        <Icon
+          name="ChevronDown"
+          size={16}
           className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
         />
       </button>
@@ -185,21 +184,19 @@ const UserMenu = ({ user = null, onNavigate = () => {} }) => {
                   key={index}
                   onClick={() => handleMenuItemClick(item)}
                   onKeyDown={(e) => handleKeyDown(e, item)}
-                  className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-200 group ${
-                    item?.variant === 'destructive' ?'text-error hover:bg-error/10 hover:text-error'
-                      : item?.variant === 'accent' ?'text-accent hover:bg-accent/10 hover:text-accent' :'text-foreground hover:bg-muted/50 hover:text-accent'
-                  }`}
+                  className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-200 group ${item?.variant === 'destructive' ? 'text-error hover:bg-error/10 hover:text-error'
+                      : item?.variant === 'accent' ? 'text-accent hover:bg-accent/10 hover:text-accent' : 'text-foreground hover:bg-muted/50 hover:text-accent'
+                    }`}
                   role="menuitem"
                   tabIndex={0}
                 >
                   <div className="flex items-center space-x-3">
-                    <Icon 
-                      name={item?.icon} 
-                      size={18} 
-                      className={`transition-colors duration-200 ${
-                        item?.variant === 'destructive' ?'text-error'
-                          : item?.variant === 'accent' ?'text-accent' :'text-muted-foreground group-hover:text-accent'
-                      }`}
+                    <Icon
+                      name={item?.icon}
+                      size={18}
+                      className={`transition-colors duration-200 ${item?.variant === 'destructive' ? 'text-error'
+                          : item?.variant === 'accent' ? 'text-accent' : 'text-muted-foreground group-hover:text-accent'
+                        }`}
                     />
                     <div>
                       <p className="font-medium">{item?.label}</p>
@@ -219,7 +216,7 @@ const UserMenu = ({ user = null, onNavigate = () => {} }) => {
             <div className="border-t border-glass-border p-3">
               <div className="text-center">
                 <p className="text-xs text-muted-foreground mb-2">
-                  New to Smart Alternatives Finder?
+                  New to NutriSwap?
                 </p>
                 <button
                   onClick={() => handleMenuItemClick({ path: '/user-registration' })}

@@ -11,6 +11,7 @@ import NotFound from './pages/NotFound';
 //  1. IMPORT YOUR NEW DASHBOARD COMPONENT
 import UserDashboard from './pages/user-dashboard';
 import UserRegistration from './pages/user-registration';
+import UserLogin from './pages/user-login';
 
 // Import Components
 import ErrorBoundary from './components/ErrorBoundary';
@@ -40,6 +41,9 @@ const App = () => {
 
           {/* 6. User Registration */}
           <Route path="/user-registration" element={<UserRegistration />} />
+
+          {/* 7. User Login */}
+          <Route path="/sign-in" element={<UserLogin />} />
 
           {/* 7. 404 Fallback (Must be last) */}
           <Route path="*" element={<NotFound />} />

@@ -76,22 +76,22 @@ const UserRegistration = () => {
 
   const handleCompleteRegistration = async () => {
     setIsLoading(true);
-    
+
     try {
       // Mock registration API call
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
+
       // Clear saved form data
       localStorage.removeItem('registrationFormData');
-      
+
       // Show success state
       setShowSuccess(true);
-      
+
       // Redirect to dashboard after success
       setTimeout(() => {
         handleNavigate('/user-dashboard');
       }, 3000);
-      
+
     } catch (error) {
       console.error('Registration error:', error);
       setIsLoading(false);
@@ -139,15 +139,15 @@ const UserRegistration = () => {
                 <div className="w-20 h-20 bg-gradient-to-br from-success to-accent rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse-glow">
                   <Icon name="Check" size={32} className="text-success-foreground" />
                 </div>
-                
+
                 <h1 className="text-2xl font-bold text-foreground mb-4">
-                  Welcome to Smart Alternatives Finder!
+                  Welcome to NutriSwap!
                 </h1>
-                
+
                 <p className="text-muted-foreground mb-6">
                   Your account has been created successfully. We're setting up your personalized dashboard...
                 </p>
-                
+
                 <div className="flex items-center justify-center space-x-2 text-accent">
                   <div className="animate-spin">
                     <Icon name="Loader2" size={20} />
@@ -167,7 +167,7 @@ const UserRegistration = () => {
       <Header onNavigate={handleNavigate} />
       <main className="pt-20 pb-12">
         <div className="container mx-auto px-6 lg:px-8">
-          <NavigationBreadcrumbs 
+          <NavigationBreadcrumbs
             customBreadcrumbs={breadcrumbs}
             onNavigate={handleNavigate}
           />
@@ -177,7 +177,7 @@ const UserRegistration = () => {
               {/* Main Registration Form */}
               <div className="lg:col-span-2">
                 <div className="glass rounded-2xl p-8 border border-glass-border shadow-glass-lg">
-                  <RegistrationProgress 
+                  <RegistrationProgress
                     currentStep={currentStep}
                     totalSteps={totalSteps}
                     stepLabels={stepLabels}

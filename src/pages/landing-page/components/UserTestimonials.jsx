@@ -12,7 +12,7 @@ const UserTestimonials = () => {
       name: 'Sarah Johnson',
       role: 'Nutritionist & Wellness Coach',
       avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg',
-      content: `Smart Alternatives Finder has revolutionized how I help my clients discover healthier food options. The detailed nutrition analysis and allergen warnings are incredibly accurate and save me hours of research.`,
+      content: `NutriSwap has revolutionized how I help my clients discover healthier food options. The detailed nutrition analysis and allergen warnings are incredibly accurate and save me hours of research.`,
       rating: 5,
       location: 'San Francisco, CA'
     },
@@ -129,7 +129,7 @@ const UserTestimonials = () => {
                       <Icon name="Quote" size={16} className="text-slate-900" />
                     </div>
                   </div>
-                  
+
                   <h3 className="text-xl font-bold text-foreground mb-1">
                     {testimonials?.[currentTestimonial]?.name}
                   </h3>
@@ -139,7 +139,7 @@ const UserTestimonials = () => {
                   <p className="text-sm text-muted-foreground mb-4">
                     {testimonials?.[currentTestimonial]?.location}
                   </p>
-                  
+
                   {/* Rating */}
                   <div className="flex justify-center lg:justify-start gap-1">
                     {renderStars(testimonials?.[currentTestimonial]?.rating)}
@@ -172,11 +172,10 @@ const UserTestimonials = () => {
                 <button
                   key={index}
                   onClick={() => setCurrentTestimonial(index)}
-                  className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                    index === currentTestimonial
+                  className={`w-3 h-3 rounded-full transition-all duration-300 ${index === currentTestimonial
                       ? 'bg-accent shadow-neon'
                       : 'bg-muted-foreground/30 hover:bg-muted-foreground/50'
-                  }`}
+                    }`}
                   aria-label={`Go to testimonial ${index + 1}`}
                 />
               ))}
@@ -203,11 +202,10 @@ const UserTestimonials = () => {
           {testimonials?.slice(0, 3)?.map((testimonial, index) => (
             <div
               key={testimonial?.id}
-              className={`glass rounded-xl p-6 border border-glass-border cursor-pointer transition-all duration-300 ${
-                index === currentTestimonial % 3
+              className={`glass rounded-xl p-6 border border-glass-border cursor-pointer transition-all duration-300 ${index === currentTestimonial % 3
                   ? 'border-accent/50 shadow-neon'
                   : 'hover:border-accent/30'
-              }`}
+                }`}
               onClick={() => setCurrentTestimonial(index)}
             >
               <div className="flex items-center mb-4">
@@ -225,11 +223,11 @@ const UserTestimonials = () => {
                   </p>
                 </div>
               </div>
-              
+
               <div className="flex gap-1 mb-3">
                 {renderStars(testimonial?.rating)}
               </div>
-              
+
               <p className="text-sm text-muted-foreground line-clamp-3">
                 {testimonial?.content}
               </p>

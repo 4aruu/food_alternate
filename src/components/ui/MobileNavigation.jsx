@@ -3,12 +3,12 @@ import Icon from '../AppIcon';
 import Image from '../AppImage';
 import SearchBar from './SearchBar';
 
-const MobileNavigation = ({ 
-  isOpen = false, 
-  onClose = () => {}, 
-  navigationItems = [], 
-  currentPath = '', 
-  onNavigate = () => {},
+const MobileNavigation = ({
+  isOpen = false,
+  onClose = () => { },
+  navigationItems = [],
+  currentPath = '',
+  onNavigate = () => { },
   user = null,
   searchProps = {}
 }) => {
@@ -79,9 +79,8 @@ const MobileNavigation = ({
 
   return (
     <div
-      className={`fixed inset-y-0 right-0 z-50 w-80 max-w-[85vw] glass border-l border-glass-border transform transition-transform duration-300 ease-in-out lg:hidden ${
-        isOpen ? 'translate-x-0' : 'translate-x-full'
-      }`}
+      className={`fixed inset-y-0 right-0 z-50 w-80 max-w-[85vw] glass border-l border-glass-border transform transition-transform duration-300 ease-in-out lg:hidden ${isOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}
       role="dialog"
       aria-modal="true"
       aria-label="Mobile navigation menu"
@@ -94,8 +93,8 @@ const MobileNavigation = ({
               <Icon name="Zap" size={18} className="text-primary-foreground" />
             </div>
             <div>
-              <h2 className="font-bold text-foreground">Smart Alternatives</h2>
-              <p className="text-xs text-muted-foreground">Finder</p>
+              <h2 className="font-bold text-foreground">NutriSwap</h2>
+              <p className="text-xs text-muted-foreground">Food Finder</p>
             </div>
           </div>
           <button
@@ -146,21 +145,19 @@ const MobileNavigation = ({
                   key={item?.path}
                   onClick={() => handleNavigation(item?.path)}
                   onKeyDown={(e) => handleKeyDown(e, () => handleNavigation(item?.path))}
-                  className={`w-full text-left p-3 rounded-xl transition-all duration-200 group ${
-                    isActivePath(item?.path)
+                  className={`w-full text-left p-3 rounded-xl transition-all duration-200 group ${isActivePath(item?.path)
                       ? 'bg-accent/20 text-accent border border-accent/30 shadow-neon'
                       : 'text-foreground hover:bg-muted/50 hover:text-accent'
-                  }`}
+                    }`}
                   role="menuitem"
                   tabIndex={0}
                 >
                   <div className="flex items-center space-x-3">
-                    <Icon 
-                      name={item?.icon} 
-                      size={20} 
-                      className={`transition-colors duration-200 ${
-                        isActivePath(item?.path) ? 'text-accent' : 'text-muted-foreground group-hover:text-accent'
-                      }`}
+                    <Icon
+                      name={item?.icon}
+                      size={20}
+                      className={`transition-colors duration-200 ${isActivePath(item?.path) ? 'text-accent' : 'text-muted-foreground group-hover:text-accent'
+                        }`}
                     />
                     <div>
                       <p className="font-medium">{item?.label}</p>
@@ -190,9 +187,9 @@ const MobileNavigation = ({
                   tabIndex={0}
                 >
                   <div className="flex items-center space-x-3">
-                    <Icon 
-                      name={item?.icon} 
-                      size={18} 
+                    <Icon
+                      name={item?.icon}
+                      size={18}
                       className="text-muted-foreground group-hover:text-accent transition-colors duration-200"
                     />
                     <span className="font-medium">{item?.label}</span>
@@ -215,9 +212,9 @@ const MobileNavigation = ({
                 tabIndex={0}
               >
                 <div className="flex items-center space-x-3">
-                  <Icon 
-                    name="LogOut" 
-                    size={18} 
+                  <Icon
+                    name="LogOut"
+                    size={18}
                     className="text-error"
                   />
                   <span className="font-medium">Sign Out</span>
@@ -231,7 +228,7 @@ const MobileNavigation = ({
         <div className="p-6 border-t border-glass-border">
           <div className="text-center">
             <p className="text-xs text-muted-foreground">
-              Smart Alternatives Finder
+              NutriSwap
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               Discover healthier food choices
