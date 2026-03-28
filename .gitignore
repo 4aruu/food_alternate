@@ -1,8 +1,21 @@
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
 .DS_Store
+
+# Dependencies
 node_modules
+
+# IDE
 .idea
-package-lock.json
-/build
 .vscode/
-.idea/
-vite.config.*s.*
+
+# Build
+/build
+/dist
+
+# Lockfile (if desired)
+package-lock.json
