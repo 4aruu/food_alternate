@@ -59,7 +59,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
         response.headers["Cache-Control"] = "no-store"
         # Remove server fingerprint
-        response.headers.pop("server", None)
+        if "server" in response.headers:
+            del response.headers["server"]
         return response
 
 app.add_middleware(SecurityHeadersMiddleware)
