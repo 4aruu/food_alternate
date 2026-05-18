@@ -5,6 +5,9 @@ import Icon from '../../components/AppIcon';
 import Header from '../../components/ui/Header';
 import { addToHistory } from '../../utils/history';
 
+// Relative /api path — Nginx proxies to backend. Set VITE_API_BASE_URL in .env.local for dev without Docker.
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+
 // --- 🧠 SMART ENGINE: CONTEXT & RELATABILITY LOGIC ---
 const getSmartSwaps = (currentFood, allFoods, filterMode) => {
   if (!currentFood || !allFoods || !allFoods.length) return [];
@@ -109,7 +112,7 @@ const NutritionExplorerModal = () => {
 
   // 1. Fetch Database
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/foods/')
+    fetch(`${API_BASE}/foods/`)
       .then(res => res.json())
       .then(data => setAllFoods(data))
       .catch(err => console.error("Failed to load foods", err));
@@ -134,7 +137,7 @@ const NutritionExplorerModal = () => {
     <div className="min-h-screen bg-black/95 backdrop-blur-xl font-sans text-white fixed inset-0 z-50 flex flex-col">
 
       {/* HEADER */}
-      <div className="max-w-5xl w-full mx-auto pt-6 px-6 flex justify-between items-center shrink-0">
+      <div className="max-w-5xl w-full mx-auto pt-4 sm:pt-6 px-4 sm:px-6 flex justify-between items-center shrink-0">
           <button onClick={() => navigate(-1)} className="text-gray-400 hover:text-white flex items-center gap-2 transition-colors">
               <Icon name="ArrowLeft" size={20} /> Back
           </button>
@@ -143,7 +146,7 @@ const NutritionExplorerModal = () => {
                  <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`text-xs font-bold px-5 py-2 rounded-full capitalize transition-all ${
+                    className={`text-[11px] sm:text-xs font-bold px-3 sm:px-5 py-2 rounded-full capitalize transition-all ${
                         activeTab === tab ? 'bg-white text-black' : 'text-gray-500 hover:text-white'
                     }`}
                  >
@@ -154,7 +157,7 @@ const NutritionExplorerModal = () => {
       </div>
 
       <div className="flex-1 overflow-y-auto custom-scrollbar">
-        <div className="max-w-5xl mx-auto mt-8 px-6 grid grid-cols-1 md:grid-cols-12 gap-8 pb-20">
+        <div className="max-w-5xl mx-auto mt-6 sm:mt-8 px-4 sm:px-6 grid grid-cols-1 md:grid-cols-12 gap-6 sm:gap-8 pb-20">
 
             {/* LEFT COLUMN: Hero */}
             <div className="md:col-span-5 space-y-6">

@@ -7,18 +7,67 @@
     scroll-behavior: smooth;
     background-color: #000000;
     color: #ffffff;
-    -webkit-font-smoothing: antialiased; /* Makes text look sharper (Apple style) */
+    -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* Prevent iOS from auto-boosting font sizes */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   body {
     overflow-x: hidden;
+    /* Support notched phones (safe area insets) */
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* Remove tap highlight on mobile */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Ensure interactive elements meet 44px minimum touch target */
+  button, a, [role="button"] {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 }
 
-/* Custom Scrollbar */
+/* ── CSS Variables used by MobileNavigation ──────────────────── */
+:root {
+  --glass-bg: rgba(10, 10, 10, 0.92);
+  --glass-border: rgba(255, 255, 255, 0.08);
+}
+
+/* Glassmorphism utilities referenced by MobileNavigation.jsx */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+.border-glass-border {
+  border-color: var(--glass-border);
+}
+
+/* Text / foreground colour tokens used by MobileNavigation */
+.text-foreground      { color: #ffffff; }
+.text-muted-foreground{ color: rgba(255,255,255,0.45); }
+.text-accent          { color: #34d399; }
+.text-error           { color: #f87171; }
+.bg-muted\/50         { background: rgba(255,255,255,0.04); }
+.bg-error\/10         { background: rgba(248,113,113,0.10); }
+.bg-accent\/20        { background: rgba(52,211,153,0.15); }
+.border-accent\/30    { border-color: rgba(52,211,153,0.30); }
+.shadow-neon          { box-shadow: 0 0 12px rgba(52,211,153,0.25); }
+.bg-gradient-to-br.from-primary { --tw-gradient-from: #34d399; }
+.text-primary-foreground { color: #000; }
+
+/* ── Scrollbar Utilities ─────────────────────────────────────── */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -33,3 +82,29 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
+
+/* Hide scrollbar but keep scrolling (for filter bars, etc.) */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Custom scrollbar for modals */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.15);
+  border-radius: 4px;
+}
+
+/* ── Safe-area padded footer helper ─────────────────────────── */
+.pb-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}

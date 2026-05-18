@@ -5,6 +5,9 @@ import Header from '../../components/ui/Header';
 import Icon from '../../components/AppIcon';
 import { addToHistory } from '../../utils/history';
 
+// Relative /api path — Nginx proxies to backend. Set VITE_API_BASE_URL in .env.local for dev without Docker.
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+
 // --- SUB-COMPONENTS ---
 
 const FilterBadge = ({ label, active, onClick }) => (
@@ -89,7 +92,7 @@ const FoodSearchResults = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('http://127.0.0.1:8000/foods/');
+        const response = await fetch(`${API_BASE}/foods/`);
         const data = await response.json();
         setAllFoods(data);
         // Don't set filteredResults here immediately, let the filter effect handle it
@@ -156,13 +159,13 @@ const FoodSearchResults = () => {
 
       <Header onNavigate={(path) => navigate(path)} />
 
-      <main className="relative z-10 pt-28 px-6 pb-20 max-w-7xl mx-auto">
+      <main className="relative z-10 pt-24 px-4 sm:px-6 pb-20 max-w-7xl mx-auto">
         {/* Page Header */}
-        <div className="mb-12">
+        <div className="mb-8 sm:mb-12">
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-4xl md:text-5xl font-bold mb-4"
+            className="text-2xl sm:text-4xl md:text-5xl font-bold mb-3"
           >
             {searchTerm ? (
               <>Results for "<span className="text-emerald-400">{searchTerm}</span>"</>
@@ -170,7 +173,7 @@ const FoodSearchResults = () => {
               <>Found <span className="text-emerald-400">{filteredResults.length}</span> Alternatives</>
             )}
           </motion.h1>
-          <p className="text-gray-400 text-lg">
+          <p className="text-gray-400">
             Browse our database of healthy, sustainable, and native foods.
           </p>
         </div>
@@ -193,7 +196,7 @@ const FoodSearchResults = () => {
         ) : (
           <motion.div
             layout
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"
           >
             <AnimatePresence>
               {filteredResults.map((item) => (
@@ -204,7 +207,6 @@ const FoodSearchResults = () => {
                   item={item}
                   onClick={() => {
                     addToHistory(item);
-                    console.log("Saved to history:", item.name); // Debug log
 
                     // Then navigate
                     navigate('/nutrition-explorer-modal', { state: { food: item } });

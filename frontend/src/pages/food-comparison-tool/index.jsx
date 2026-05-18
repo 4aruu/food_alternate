@@ -4,6 +4,9 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import Header from '../../components/ui/Header';
 import Icon from '../../components/AppIcon';
 
+// Relative /api path — Nginx proxies to backend. Set VITE_API_BASE_URL in .env.local for dev without Docker.
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+
 const FoodComparisonTool = () => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -15,7 +18,7 @@ const FoodComparisonTool = () => {
 
     // 1. Fetch Data
     useEffect(() => {
-        fetch('http://127.0.0.1:8000/foods/')
+        fetch(`${API_BASE}/foods/`)
             .then(res => res.json())
             .then(data => setAllFoods(data))
             .catch(err => console.error('Failed to load foods', err));
@@ -75,22 +78,22 @@ const FoodComparisonTool = () => {
         <div className="min-h-screen bg-black text-white font-sans selection:bg-emerald-500/30">
             <Header onNavigate={(path) => navigate(path)} />
 
-            <main className="relative z-10 pt-28 px-6 pb-20 max-w-7xl mx-auto">
+            <main className="relative z-10 pt-24 px-4 sm:px-6 pb-20 max-w-7xl mx-auto">
 
                 {/* --- HEADER SECTION --- */}
-                <div className="flex flex-col md:flex-row items-end justify-between mb-8 gap-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between mb-6 gap-3">
                     <div>
-                        <h1 className="text-4xl font-bold mb-2">
+                        <h1 className="text-2xl sm:text-4xl font-bold mb-1 sm:mb-2">
                             Comparison <span className="text-emerald-400">Lab</span>
                         </h1>
-                        <p className="text-gray-400">Compare nutrition, sustainability, and safety.</p>
+                        <p className="text-sm text-gray-400">Compare nutrition, sustainability, and safety.</p>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                         {comparedFoods.length > 0 && (
                             <button
                                 onClick={() => setComparedFoods([])}
-                                className="px-6 py-2.5 rounded-full border border-white/20 text-sm font-medium hover:bg-white/5 transition-all"
+                                className="px-4 py-2 rounded-full border border-white/20 text-xs sm:text-sm font-medium hover:bg-white/5 transition-all"
                             >
                                 Clear
                             </button>
@@ -98,29 +101,36 @@ const FoodComparisonTool = () => {
                         <button
                             onClick={() => setIsModalOpen(true)}
                             disabled={comparedFoods.length >= 4}
-                            className={`px-6 py-2.5 rounded-full text-sm font-bold flex items-center gap-2 transition-all ${comparedFoods.length >= 4
+                            className={`px-4 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-bold flex items-center gap-2 transition-all ${comparedFoods.length >= 4
                                 ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
                                 : 'bg-emerald-500 hover:bg-emerald-400 text-black shadow-[0_0_20px_rgba(16,185,129,0.2)]'
                                 }`}
                         >
-                            <Icon name="Plus" size={18} /> Add Food
+                            <Icon name="Plus" size={16} /> Add Food
                         </button>
                     </div>
                 </div>
 
                 {/* --- COMPARISON MATRIX CONTAINER --- */}
-                <div className="bg-[#0a0a0a] border border-white/10 rounded-3xl p-8 overflow-x-auto">
+                {/* Mobile: swipe-to-scroll table; Desktop: full matrix */}
+                <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl sm:rounded-3xl p-4 sm:p-8">
+                    {/* Scroll hint label (visible on small screens only) */}
+                    {comparedFoods.length > 0 && (
+                        <p className="text-xs text-gray-600 mb-3 sm:hidden text-center">← Swipe to compare →</p>
+                    )}
+
+                    <div className="overflow-x-auto scrollbar-hide">
 
                     {/* 1. SELECTED ITEMS ROW */}
-                    <div className="grid grid-cols-[150px_repeat(4,1fr)] gap-8 mb-12 min-w-[800px]">
+                    <div className="grid grid-cols-[120px_repeat(4,minmax(120px,1fr))] gap-4 sm:gap-8 mb-8 sm:mb-12 min-w-[560px] sm:min-w-[800px]">
                         <div className="flex items-center text-xs font-bold text-gray-500 uppercase tracking-widest">
-                            Selected Items
+                            Selected
                         </div>
 
                         {[0, 1, 2, 3].map(i => {
                             const food = comparedFoods[i];
                             return (
-                                <div key={i} className="relative h-40 rounded-2xl bg-[#111] border border-white/5 flex items-center justify-center group overflow-hidden">
+                                <div key={i} className="relative h-32 sm:h-40 rounded-xl sm:rounded-2xl bg-[#111] border border-white/5 flex items-center justify-center group overflow-hidden">
                                     {food ? (
                                         <>
                                             <img src={food.image} alt={food.name} className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-40 transition-opacity" />
@@ -128,14 +138,14 @@ const FoodComparisonTool = () => {
 
                                             <button
                                                 onClick={() => handleRemoveFood(food.id)}
-                                                className="absolute top-2 right-2 p-1.5 bg-black/50 backdrop-blur-md rounded-full text-white/70 hover:text-red-400 hover:bg-black transition-all z-20"
+                                                className="absolute top-1.5 right-1.5 p-1 bg-black/50 backdrop-blur-md rounded-full text-white/70 hover:text-red-400 hover:bg-black transition-all z-20"
                                             >
-                                                <Icon name="X" size={14} />
+                                                <Icon name="X" size={12} />
                                             </button>
 
-                                            <div className="absolute bottom-4 left-4 z-10">
-                                                <h3 className="font-bold text-lg leading-tight mb-1">{food.name}</h3>
-                                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider bg-white/10 px-2 py-1 rounded">
+                                            <div className="absolute bottom-2 left-2 z-10">
+                                                <h3 className="font-bold text-sm leading-tight mb-1">{food.name}</h3>
+                                                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider bg-white/10 px-1.5 py-0.5 rounded">
                                                     {food.category}
                                                 </span>
                                             </div>
@@ -143,12 +153,12 @@ const FoodComparisonTool = () => {
                                     ) : (
                                         <button
                                             onClick={() => setIsModalOpen(true)}
-                                            className="flex flex-col items-center gap-2 text-gray-600 hover:text-emerald-500 transition-colors"
+                                            className="flex flex-col items-center gap-1.5 text-gray-600 hover:text-emerald-500 transition-colors"
                                         >
-                                            <div className="w-10 h-10 rounded-full border-2 border-dashed border-current flex items-center justify-center">
-                                                <Icon name="Plus" size={20} />
+                                            <div className="w-8 h-8 rounded-full border-2 border-dashed border-current flex items-center justify-center">
+                                                <Icon name="Plus" size={16} />
                                             </div>
-                                            <span className="text-xs font-medium">Add Item</span>
+                                            <span className="text-[10px] font-medium">Add</span>
                                         </button>
                                     )}
                                 </div>
@@ -157,9 +167,9 @@ const FoodComparisonTool = () => {
                     </div>
 
                     {/* 2. NUTRITION SECTION */}
-                    <div className="mb-10 min-w-[800px]">
-                        <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm tracking-widest mb-6 uppercase">
-                            <Icon name="Activity" size={16} /> Nutrition
+                    <div className="mb-8 sm:mb-10 min-w-[560px] sm:min-w-[800px]">
+                        <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs sm:text-sm tracking-widest mb-4 sm:mb-6 uppercase">
+                            <Icon name="Activity" size={14} /> Nutrition
                         </div>
 
                         {[
@@ -170,8 +180,8 @@ const FoodComparisonTool = () => {
                             { label: 'Sugar', key: 'sugar', unit: 'g' },
                             { label: 'Sodium', key: 'sodium', unit: 'mg' },
                         ].map(metric => (
-                            <div key={metric.key} className="grid grid-cols-[150px_repeat(4,1fr)] gap-8 py-5 border-b border-white/5 hover:bg-white/5 transition-colors">
-                                <div className="text-gray-400 font-medium text-sm self-center">{metric.label}</div>
+                            <div key={metric.key} className="grid grid-cols-[120px_repeat(4,minmax(120px,1fr))] gap-4 sm:gap-8 py-3 sm:py-5 border-b border-white/5 hover:bg-white/5 transition-colors">
+                                <div className="text-gray-400 font-medium text-xs sm:text-sm self-center">{metric.label}</div>
                                 {[0, 1, 2, 3].map(i => {
                                     const food = comparedFoods[i];
                                     if (!food) return <div key={i}></div>;
@@ -180,7 +190,7 @@ const FoodComparisonTool = () => {
                                     const style = getBestStyle(metric.key, val, comparedFoods);
 
                                     return (
-                                        <div key={i} className={`text-center text-lg font-mono ${style}`}>
+                                        <div key={i} className={`text-center text-sm sm:text-lg font-mono ${style}`}>
                                             {val}{metric.unit}
                                             {style.includes('emerald') && <span className="block w-1.5 h-1.5 bg-emerald-500 rounded-full mx-auto mt-1" />}
                                         </div>
@@ -191,18 +201,18 @@ const FoodComparisonTool = () => {
                     </div>
 
                     {/* 3. SUSTAINABILITY SECTION */}
-                    <div className="min-w-[800px]">
-                        <div className="flex items-center gap-2 text-blue-400 font-bold text-sm tracking-widest mb-6 uppercase">
-                            <Icon name="Leaf" size={16} /> Sustainability
+                    <div className="min-w-[560px] sm:min-w-[800px]">
+                        <div className="flex items-center gap-2 text-blue-400 font-bold text-xs sm:text-sm tracking-widest mb-4 sm:mb-6 uppercase">
+                            <Icon name="Leaf" size={14} /> Sustainability
                         </div>
 
-                        <div className="grid grid-cols-[150px_repeat(4,1fr)] gap-8 py-5 border-b border-white/5 hover:bg-white/5 transition-colors">
-                            <div className="text-gray-400 font-medium text-sm self-center">Eco Score</div>
+                        <div className="grid grid-cols-[120px_repeat(4,minmax(120px,1fr))] gap-4 sm:gap-8 py-3 sm:py-5 border-b border-white/5 hover:bg-white/5 transition-colors">
+                            <div className="text-gray-400 font-medium text-xs sm:text-sm self-center">Eco Score</div>
                             {[0, 1, 2, 3].map(i => {
                                 const food = comparedFoods[i];
                                 if (!food) return <div key={i}></div>;
                                 return (
-                                    <div key={i} className="text-center font-bold text-lg text-emerald-400">
+                                    <div key={i} className="text-center font-bold text-sm sm:text-lg text-emerald-400">
                                         {food.sustainability_score}/100
                                         <span className="block w-1.5 h-1.5 bg-emerald-500 rounded-full mx-auto mt-1" />
                                     </div>
@@ -210,13 +220,13 @@ const FoodComparisonTool = () => {
                             })}
                         </div>
 
-                        <div className="grid grid-cols-[150px_repeat(4,1fr)] gap-8 py-5 border-b border-white/5 hover:bg-white/5 transition-colors">
-                            <div className="text-gray-400 font-medium text-sm self-center">CO2</div>
+                        <div className="grid grid-cols-[120px_repeat(4,minmax(120px,1fr))] gap-4 sm:gap-8 py-3 sm:py-5 border-b border-white/5 hover:bg-white/5 transition-colors">
+                            <div className="text-gray-400 font-medium text-xs sm:text-sm self-center">CO₂</div>
                             {[0, 1, 2, 3].map(i => {
                                 const food = comparedFoods[i];
                                 if (!food) return <div key={i}></div>;
                                 return (
-                                    <div key={i} className="text-center font-mono text-lg text-white">
+                                    <div key={i} className="text-center font-mono text-sm sm:text-lg text-white">
                                         {food.sustainability?.carbon_footprint} kg
                                     </div>
                                 );
@@ -224,6 +234,7 @@ const FoodComparisonTool = () => {
                         </div>
                     </div>
 
+                    </div>{/* end overflow-x-auto */}
                 </div>
 
                 {/* --- ADD FOOD MODAL --- */}

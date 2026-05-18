@@ -4,11 +4,13 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASS:-adithaaron}
-      POSTGRES_DB: ${DB_NAME:-food_finder}
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: ${DB_USER:?DB_USER is required — set it in .env}
+      POSTGRES_PASSWORD: ${DB_PASS:?DB_PASS is required — set it in .env}
+      POSTGRES_DB: ${DB_NAME:?DB_NAME is required — set it in .env}
+    # SECURITY: DB port NOT exposed to host. Only reachable over 'food_net'.
+    # Uncomment the lines below ONLY for local debugging, never in production:
+    # ports:
+    #   - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -16,6 +18,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    networks:
+      - food_net
 
   # ── FastAPI Backend ─────────────────────────────────────
   backend:
@@ -26,14 +30,22 @@ services:
     environment:
       DB_HOST: db
       DB_PORT: 5432
-      DB_USER: ${DB_USER:-postgres}
-      DB_PASS: ${DB_PASS:-adithaaron}
-      DB_NAME: ${DB_NAME:-food_finder}
-    ports:
-      - "8000:8000"
+      DB_USER: ${DB_USER:?DB_USER is required}
+      DB_PASS: ${DB_PASS:?DB_PASS is required}
+      DB_NAME: ${DB_NAME:?DB_NAME is required}
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      # Comma-separated list of origins allowed to call the API
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:4028}
+      # Comma-separated list of valid Host header values
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
+    # SECURITY: Backend NOT exposed to host — Nginx proxies /api/* internally.
+    # ports:
+    #   - "127.0.0.1:8000:8000"
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - food_net
 
   # ── React Frontend (Nginx) ─────────────────────────────
   frontend:
@@ -41,12 +53,19 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
+        # Use a relative path so the browser hits the same origin (/api/...)
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
     restart: unless-stopped
     ports:
       - "4028:80"
     depends_on:
       - backend
+    networks:
+      - food_net
 
 volumes:
   pgdata:
+
+networks:
+  food_net:
+    driver: bridge

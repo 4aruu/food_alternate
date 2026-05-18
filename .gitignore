@@ -1,11 +1,12 @@
 # ========================
-# Environment & Secrets
+# Environment & Secrets  ← NEVER commit these
 # ========================
 .env
 .env.local
 .env.production
 .env.staging
 .env.*.local
+# Keep .env.example and .env.docker (placeholders only, no real creds)
 
 # ========================
 # Python
@@ -21,6 +22,7 @@ build/
 venv/
 env/
 *.egg
+*.log
 
 # ========================
 # Node.js / Frontend
@@ -47,7 +49,8 @@ Thumbs.db
 # ========================
 /build
 /dist
-*.log
+frontend/build/
+frontend/dist/
 
 # ========================
 # OS Files
@@ -55,3 +58,15 @@ Thumbs.db
 .DS_Store
 Desktop.ini
 Thumbs.db
+
+# ========================
+# Security — extra guards
+# ========================
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+id_rsa
+id_rsa.pub

@@ -251,7 +251,7 @@ const LandingPage = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-5xl md:text-7xl font-bold mb-6 leading-tight"
+            className="text-4xl sm:text-5xl md:text-7xl font-bold mb-6 leading-tight"
           >
             Eat Smarter.
             <br />
@@ -387,8 +387,8 @@ const LandingPage = () => {
             <div className="w-20 h-1 bg-gradient-to-r from-emerald-500 to-teal-500 mx-auto rounded-full mt-6" />
           </div>
 
-          <div className="bg-gradient-to-br from-emerald-500/10 via-teal-500/10 to-cyan-500/10 border border-emerald-500/20 rounded-3xl p-12 backdrop-blur-sm">
-            <div className="grid md:grid-cols-3 gap-8 mb-12">
+          <div className="bg-gradient-to-br from-emerald-500/10 via-teal-500/10 to-cyan-500/10 border border-emerald-500/20 rounded-3xl p-6 sm:p-12 backdrop-blur-sm">
+            <div className="grid sm:grid-cols-3 gap-6 sm:gap-8 mb-8 sm:mb-12">
               <div className="text-center">
                 <div className="w-20 h-20 bg-emerald-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
                   <span className="text-4xl">🎯</span>
@@ -439,17 +439,17 @@ const LandingPage = () => {
           </div>
 
           <div className="relative">
-            {/* Example Swap */}
-            <div className="grid md:grid-cols-3 gap-8 items-center">
+            {/* Example Swap — vertical on mobile, horizontal on md+ */}
+            <div className="flex flex-col md:grid md:grid-cols-3 gap-6 md:gap-8 items-center">
               {/* Before */}
               <motion.div
                 whileHover={{ scale: 1.05 }}
-                className="bg-red-500/10 border border-red-500/20 rounded-3xl p-8 text-center"
+                className="bg-red-500/10 border border-red-500/20 rounded-3xl p-6 sm:p-8 text-center w-full"
               >
-                <div className="w-32 h-32 bg-red-500/20 rounded-2xl mx-auto mb-6 flex items-center justify-center">
-                  <span className="text-6xl">🥞</span>
+                <div className="w-24 h-24 sm:w-32 sm:h-32 bg-red-500/20 rounded-2xl mx-auto mb-4 sm:mb-6 flex items-center justify-center">
+                  <span className="text-5xl sm:text-6xl">🥞</span>
                 </div>
-                <h3 className="text-2xl font-bold mb-2">Porotta</h3>
+                <h3 className="text-xl sm:text-2xl font-bold mb-2">Porotta</h3>
                 <p className="text-red-400 text-sm mb-4">High fat, not suitable</p>
                 <div className="flex gap-2 justify-center flex-wrap">
                   <span className="px-3 py-1 bg-red-500/20 rounded-full text-xs">High Fat</span>
@@ -457,7 +457,7 @@ const LandingPage = () => {
                 </div>
               </motion.div>
 
-              {/* Arrow */}
+              {/* Arrow — rotates 90° on mobile for vertical flow */}
               <div className="flex justify-center">
                 <motion.div
                   animate={{
@@ -473,21 +473,21 @@ const LandingPage = () => {
                     repeat: Infinity,
                     ease: "easeInOut"
                   }}
-                  className="w-16 h-16 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full flex items-center justify-center"
+                  className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full flex items-center justify-center rotate-90 md:rotate-0"
                 >
-                  <span className="text-2xl">→</span>
+                  <span className="text-xl sm:text-2xl">→</span>
                 </motion.div>
               </div>
 
               {/* After */}
               <motion.div
                 whileHover={{ scale: 1.05 }}
-                className="bg-emerald-500/10 border border-emerald-500/20 rounded-3xl p-8 text-center"
+                className="bg-emerald-500/10 border border-emerald-500/20 rounded-3xl p-6 sm:p-8 text-center w-full"
               >
-                <div className="w-32 h-32 bg-emerald-500/20 rounded-2xl mx-auto mb-6 flex items-center justify-center">
-                  <span className="text-6xl">🍚</span>
+                <div className="w-24 h-24 sm:w-32 sm:h-32 bg-emerald-500/20 rounded-2xl mx-auto mb-4 sm:mb-6 flex items-center justify-center">
+                  <span className="text-5xl sm:text-6xl">🍚</span>
                 </div>
-                <h3 className="text-2xl font-bold mb-2">Idli / Steamed Banana</h3>
+                <h3 className="text-xl sm:text-2xl font-bold mb-2">Idli / Steamed Banana</h3>
                 <p className="text-emerald-400 text-sm mb-4">Perfect alternative</p>
                 <div className="flex gap-2 justify-center flex-wrap">
                   <span className="px-3 py-1 bg-emerald-500/20 rounded-full text-xs">Low Fat</span>
@@ -517,7 +517,7 @@ const LandingPage = () => {
             <div className="w-20 h-1 bg-gradient-to-r from-emerald-500 to-teal-500 mx-auto rounded-full" />
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
             {/* Users Helped */}
             <motion.div
               whileHover={{ y: -10, scale: 1.02 }}
@@ -588,7 +588,7 @@ const LandingPage = () => {
             <div className="w-20 h-1 bg-gradient-to-r from-emerald-500 to-teal-500 mx-auto rounded-full" />
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 mb-16">
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8 mb-12 sm:mb-16">
             <motion.div
               whileHover={{ y: -10 }}
               className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 rounded-3xl p-8 text-center"
@@ -617,8 +617,8 @@ const LandingPage = () => {
             </motion.div>
           </div>
 
-          <div className="bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-cyan-500/20 border border-emerald-500/30 rounded-3xl p-12 text-center backdrop-blur-sm">
-            <h3 className="text-3xl font-bold mb-6">
+          <div className="bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-cyan-500/20 border border-emerald-500/30 rounded-3xl p-6 sm:p-12 text-center backdrop-blur-sm">
+            <h3 className="text-xl sm:text-3xl font-bold mb-4 sm:mb-6">
               Empowering healthier lives through intelligent food choices
             </h3>
             <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">

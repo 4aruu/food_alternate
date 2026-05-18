@@ -70,19 +70,19 @@ const UserDashboard = () => {
     <div className="min-h-screen bg-[#050505] font-sans text-white pb-20">
       <Header />
 
-      <div className="max-w-5xl mx-auto px-6 pt-32 space-y-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-24 sm:pt-32 space-y-6 sm:space-y-8">
 
         {/* 1. Welcome Section */}
-        <div className="flex justify-between items-end">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-2">
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-gray-500 bg-clip-text text-transparent">
+            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-white to-gray-500 bg-clip-text text-transparent">
               Hello, Chef 👨‍🍳
             </h1>
-            <p className="text-gray-400 mt-1">Here is your nutritional overview based on your recent searches.</p>
+            <p className="text-gray-400 mt-1 text-sm sm:text-base">Here is your nutritional overview based on your recent searches.</p>
           </div>
-          <div className="text-right hidden md:block">
+          <div className="text-left sm:text-right">
             <p className="text-xs text-gray-500 font-mono uppercase tracking-widest">Current Status</p>
-            <p className="text-emerald-400 font-bold flex items-center justify-end gap-2">
+            <p className="text-emerald-400 font-bold flex items-center gap-2 sm:justify-end">
               <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" /> Online
             </p>
           </div>

@@ -4,6 +4,9 @@ import Icon from '../AppIcon';
 import UserMenu from './UserMenu';
 import MobileNavigation from './MobileNavigation';
 
+// Relative /api path — Nginx proxies to backend. Set VITE_API_BASE_URL in .env.local for dev without Docker.
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+
 const Header = ({ user = null }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -33,7 +36,7 @@ const Header = ({ user = null }) => {
 
   // 2. FETCH DATABASE ON MOUNT
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/foods/')
+    fetch(`${API_BASE}/foods/`)
       .then(res => res.json())
       .then(data => setAllFoods(data))
       .catch(err => console.error("Header Search Error:", err));

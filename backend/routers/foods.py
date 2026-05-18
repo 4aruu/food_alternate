@@ -5,7 +5,7 @@ Sources: ICMR/NIN dietary guidelines, FSSAI Eat Right India,
          Ayurvedic food pairing, Kerala clinical nutrition studies.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import SQLAlchemyError, OperationalError
 from sqlalchemy import or_, and_, desc
@@ -14,28 +14,37 @@ from database import get_db
 from models import Food, Nutrition, Allergen, Sustainability
 from schemas import FoodSchema
 from pydantic import BaseModel, field_validator
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 import logging
 
 logger = logging.getLogger(__name__)
+limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter(prefix="/foods", tags=["foods"])
 
 # ── ERROR HANDLING HELPER ─────────────────────────────────────
 def safe_db_query(db: Session, query_func, error_msg: str = "Database query failed"):
-    """Wraps DB queries with proper error handling and logging."""
+    """Wraps DB queries with proper error handling and logging.
+
+    SECURITY: Exception objects are intentionally NOT logged verbatim to
+    prevent connection strings / credentials from leaking into log output.
+    Only the exception type is logged.
+    """
     try:
         return query_func()
     except OperationalError as e:
-        logger.error(f"Database connection error: {e}")
+        # Log only the type — not the full string which may contain the DSN
+        logger.error("Database OperationalError: %s", type(e).__name__)
         raise HTTPException(
             status_code=503,
             detail="Database is temporarily unavailable. Please try again."
         )
     except SQLAlchemyError as e:
-        logger.error(f"Database error in query: {e}")
+        logger.error("SQLAlchemyError (%s) in query", type(e).__name__)
         raise HTTPException(status_code=500, detail=error_msg)
     except Exception as e:
-        logger.error(f"Unexpected error: {e}")
+        logger.error("Unexpected error (%s) in query", type(e).__name__)
         raise HTTPException(status_code=500, detail="An unexpected error occurred.")
 
 
@@ -115,7 +124,8 @@ def food_query_with_joins(db: Session):
 # 1. GET ALL FOODS
 # ═══════════════════════════════════════════════════════════════
 @router.get("/", response_model=List[FoodSchema])
-def get_foods(db: Session = Depends(get_db)):
+@limiter.limit("30/minute")
+def get_foods(request: Request, db: Session = Depends(get_db)):
     """Returns all foods with full nutrition, allergen, and sustainability data."""
     def query():
         results = food_query_with_joins(db).all()
@@ -130,7 +140,8 @@ def get_foods(db: Session = Depends(get_db)):
 # 2. SEARCH FOODS
 # ═══════════════════════════════════════════════════════════════
 @router.get("/search", response_model=List[FoodSchema])
-def search_foods(q: str = Query(..., min_length=1, max_length=100), db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+def search_foods(request: Request, q: str = Query(..., min_length=1, max_length=100), db: Session = Depends(get_db)):
     """
     Search foods by name or category.
     - Minimum 1 character, maximum 100 characters.
@@ -161,7 +172,8 @@ def search_foods(q: str = Query(..., min_length=1, max_length=100), db: Session 
 # 3. GET SINGLE FOOD DETAILS
 # ═══════════════════════════════════════════════════════════════
 @router.get("/{food_id}", response_model=FoodSchema)
-def get_food_detail(food_id: int, db: Session = Depends(get_db)):
+@limiter.limit("30/minute")
+def get_food_detail(request: Request, food_id: int, db: Session = Depends(get_db)):
     """Get detailed food info by ID."""
     if food_id <= 0:
         raise HTTPException(status_code=400, detail="Food ID must be a positive integer.")
@@ -180,7 +192,9 @@ def get_food_detail(food_id: int, db: Session = Depends(get_db)):
 # 4. SMART ALTERNATIVES ENGINE (Medically Validated)
 # ═══════════════════════════════════════════════════════════════
 @router.get("/{food_id}/alternatives", response_model=List[FoodSchema])
+@limiter.limit("20/minute")
 def get_alternatives(
+    request: Request,
     food_id: int,
     health_goal: Optional[str] = None,
     avoid: List[str] = Query(default=[]),
@@ -431,7 +445,8 @@ MEDICAL_INSIGHTS = {
 
 
 @router.post("/explain-swap")
-async def explain_swap(request: SwapRequest, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+async def explain_swap(http_request: Request, request: SwapRequest, db: Session = Depends(get_db)):
     """
     Generates a multi-factor, medically validated explanation for why
     the alternative food is a better choice than the original.
