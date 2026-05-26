@@ -1,6 +1,7 @@
 import os
 import logging
-from fastapi import FastAPI, Request
+# pyrefly: ignore-file
+from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
@@ -8,7 +9,8 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-from database import Base, engine
+from sqlalchemy import text
+from database import Base, engine, get_db, SessionLocal
 from routers import foods
 
 logging.basicConfig(
@@ -91,3 +93,22 @@ app.include_router(foods.router)
 def home():
     return {"message": "Backend is running!"}
 
+
+@app.get("/health")
+def health_check():
+    """
+    Health check endpoint that also pings the database.
+    Point a free cron/uptime service (e.g. UptimeRobot, cron-job.org)
+    at this URL every 5-10 minutes to prevent Render auto-sleep
+    and Aiven database auto-pause.
+    """
+    try:
+        db = SessionLocal()
+        db.execute(text("SELECT 1"))
+        db.close()
+        db_status = "connected"
+    except Exception as e:
+        logger.error("Health check DB ping failed: %s", e)
+        db_status = "disconnected"
+
+    return {"status": "ok", "database": db_status}

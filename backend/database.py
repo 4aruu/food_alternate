@@ -26,7 +26,13 @@ if not DATABASE_URL:
 # SECURITY: Never log the DATABASE_URL — it contains credentials.
 logger.info("Database engine initialising for host: %s", DB_HOST or "<from DATABASE_URL>")
 
-engine = create_engine(DATABASE_URL)
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,    # Detect stale connections before using them
+    pool_recycle=300,       # Recycle connections every 5 minutes (Aiven drops idle ones)
+    pool_size=5,
+    max_overflow=10,
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
