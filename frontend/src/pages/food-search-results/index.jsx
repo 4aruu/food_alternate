@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Header from '../../components/ui/Header';
 import Icon from '../../components/AppIcon';
+import ConnectionError from '../../components/ConnectionError';
+import FoodGridSkeleton from '../../components/FoodGridSkeleton';
 import { addToHistory } from '../../utils/history';
 
 // Relative /api path — Nginx proxies to backend. Set VITE_API_BASE_URL in .env.local for dev without Docker.
@@ -86,24 +88,40 @@ const FoodSearchResults = () => {
   const [filteredResults, setFilteredResults] = useState([]);
   const [activeFilter, setActiveFilter] = useState('All');
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // 1. Fetch from Backend
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch(`${API_BASE}/foods/`);
-        const data = await response.json();
-        setAllFoods(data);
-        // Don't set filteredResults here immediately, let the filter effect handle it
-        setIsLoading(false);
-      } catch (error) {
-        console.error("Error fetching foods:", error);
-        setIsLoading(false);
+  // 1. Fetch from Backend (with retry logic)
+  const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    setHasError(false);
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+      const response = await fetch(`${API_BASE}/foods/`, {
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`Server responded with ${response.status}`);
       }
-    };
-    fetchData();
+
+      const data = await response.json();
+      setAllFoods(data);
+      setIsLoading(false);
+    } catch (error) {
+      console.error("Error fetching foods:", error);
+      setHasError(true);
+      setIsLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   // 2. Sync URL Search to State (Connecting Header to Page)
   useEffect(() => {
@@ -191,8 +209,13 @@ const FoodSearchResults = () => {
         </div>
 
         {/* Results Grid */}
-        {isLoading ? (
-          <div className="text-center py-20 text-gray-500">Loading foods...</div>
+        {hasError ? (
+          <ConnectionError
+            message="Couldn't load foods. The server may be waking up — give it a moment."
+            onRetry={fetchData}
+          />
+        ) : isLoading ? (
+          <FoodGridSkeleton count={6} />
         ) : (
           <motion.div
             layout
