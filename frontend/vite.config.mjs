@@ -7,7 +7,16 @@ export default defineConfig({
     host: "0.0.0.0"
   },
   build: {
-    outDir: "build"
+    outDir: "build",
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "vendor-react": ["react", "react-dom", "react-router-dom"],
+          "vendor-motion": ["framer-motion"],
+          "vendor-charts": ["recharts", "d3"],
+        }
+      }
+    }
   },
   plugins: [react()]
 });

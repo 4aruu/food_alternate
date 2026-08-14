@@ -5,8 +5,7 @@ import Header from '../../components/ui/Header';
 import Icon from '../../components/AppIcon';
 import ConnectionError from '../../components/ConnectionError';
 
-// Relative /api path — Nginx proxies to backend. Set VITE_API_BASE_URL in .env.local for dev without Docker.
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+import { API_BASE } from '../../utils/api';
 
 const FoodComparisonTool = () => {
     const navigate = useNavigate();

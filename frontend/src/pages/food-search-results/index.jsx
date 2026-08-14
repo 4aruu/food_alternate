@@ -7,8 +7,7 @@ import ConnectionError from '../../components/ConnectionError';
 import FoodGridSkeleton from '../../components/FoodGridSkeleton';
 import { addToHistory } from '../../utils/history';
 
-// Relative /api path — Nginx proxies to backend. Set VITE_API_BASE_URL in .env.local for dev without Docker.
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+import { API_BASE } from '../../utils/api';
 
 // --- SUB-COMPONENTS ---
 

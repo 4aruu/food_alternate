@@ -1,4 +1,5 @@
 import os
+import json
 import logging
 # pyrefly: ignore-file
 from fastapi import FastAPI, Request, Depends
@@ -13,10 +14,30 @@ from sqlalchemy import text
 from database import Base, engine, get_db, SessionLocal
 from routers import foods
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-)
+
+# ── Structured Logging ────────────────────────────────────
+class JSONFormatter(logging.Formatter):
+    """JSON log format for production — parseable by Render, Datadog, etc."""
+    def format(self, record):
+        log_data = {
+            "timestamp": self.formatTime(record),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+        }
+        if record.exc_info:
+            log_data["exception"] = self.formatException(record.exc_info)
+        return json.dumps(log_data)
+
+
+_is_production = os.getenv("ENVIRONMENT", "development") == "production"
+_handler = logging.StreamHandler()
+if _is_production:
+    _handler.setFormatter(JSONFormatter())
+else:
+    _handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
+
+logging.basicConfig(level=logging.INFO, handlers=[_handler])
 logger = logging.getLogger(__name__)
 
 # ── Rate Limiter ──────────────────────────────────────────────
@@ -102,13 +123,16 @@ def health_check():
     at this URL every 5-10 minutes to prevent Render auto-sleep
     and Aiven database auto-pause.
     """
+    db = None
     try:
         db = SessionLocal()
         db.execute(text("SELECT 1"))
-        db.close()
         db_status = "connected"
     except Exception as e:
         logger.error("Health check DB ping failed: %s", e)
         db_status = "disconnected"
+    finally:
+        if db:
+            db.close()
 
     return {"status": "ok", "database": db_status}

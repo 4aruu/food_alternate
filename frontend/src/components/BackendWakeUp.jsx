@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+import { API_BASE } from '../utils/api';
 
 const STATUS_MESSAGES = [
   { text: "Connecting to servers…", icon: "🔌" },
