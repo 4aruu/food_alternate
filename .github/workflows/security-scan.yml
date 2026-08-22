@@ -19,7 +19,7 @@ jobs:
       # 2. Build local Docker Image
       - name: Build Docker Image
         run: |
-          docker build -t my-app:test .
+          docker build -t my-app:test -f frontend/Dockerfile ./frontend
 
       # 3. TRIVY: Vulnerability & Secret Scan on Container Image
       - name: Run Trivy Vulnerability & Secret Scan
