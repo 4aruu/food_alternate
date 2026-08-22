@@ -1,0 +1,59 @@
+name: Security Pipeline (Trivy + OWASP ZAP)
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build-and-scan:
+    name: Build & Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout repository code
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # 2. Build local Docker Image
+      - name: Build Docker Image
+        run: |
+          docker build -t my-app:test .
+
+      # 3. TRIVY: Vulnerability & Secret Scan on Container Image
+      - name: Run Trivy Vulnerability & Secret Scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: 'my-app:test'
+          format: 'table'
+          # Options: CRITICAL, HIGH, MEDIUM, LOW
+          severity: 'CRITICAL,HIGH'
+          # Set exit-code: '1' if you want the pipeline to FAIL when severe vulnerabilities are found
+          exit-code: '0'
+          hide-progress: false
+
+      # 4. Start app container in the background for DAST scanning
+      - name: Run Application Container
+        run: |
+          docker run -d --name test-app -p 8080:8080 my-app:test
+          # Wait a few seconds for the app server to boot up completely
+          sleep 10
+
+      # 5. OWASP ZAP: Dynamic Application Security Testing (DAST)
+      - name: OWASP ZAP Baseline DAST Scan
+        uses: zaproxy/action-baseline@v0.14.0
+        with:
+          # Target your container running on port 8080 on the GitHub runner
+          target: 'http://localhost:8080'
+          # Automatically create a GitHub Issue if vulnerabilities are found
+          allow_issue_writing: true
+          fail_action: false
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # 6. Clean up running container
+      - name: Stop App Container
+        if: always()
+        run: |
+          docker stop test-app || true
+          docker rm test-app || true
