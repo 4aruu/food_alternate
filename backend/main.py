@@ -1,6 +1,8 @@
 import os
+import json
 import logging
-from fastapi import FastAPI, Request
+# pyrefly: ignore-file
+from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
@@ -8,13 +10,34 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-from database import Base, engine
+from sqlalchemy import text
+from database import Base, engine, get_db, SessionLocal
 from routers import foods
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-)
+
+# ── Structured Logging ────────────────────────────────────
+class JSONFormatter(logging.Formatter):
+    """JSON log format for production — parseable by Render, Datadog, etc."""
+    def format(self, record):
+        log_data = {
+            "timestamp": self.formatTime(record),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+        }
+        if record.exc_info:
+            log_data["exception"] = self.formatException(record.exc_info)
+        return json.dumps(log_data)
+
+
+_is_production = os.getenv("ENVIRONMENT", "development") == "production"
+_handler = logging.StreamHandler()
+if _is_production:
+    _handler.setFormatter(JSONFormatter())
+else:
+    _handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
+
+logging.basicConfig(level=logging.INFO, handlers=[_handler])
 logger = logging.getLogger(__name__)
 
 # ── Rate Limiter ──────────────────────────────────────────────
@@ -91,3 +114,25 @@ app.include_router(foods.router)
 def home():
     return {"message": "Backend is running!"}
 
+
+@app.get("/health")
+def health_check():
+    """
+    Health check endpoint that also pings the database.
+    Point a free cron/uptime service (e.g. UptimeRobot, cron-job.org)
+    at this URL every 5-10 minutes to prevent Render auto-sleep
+    and Aiven database auto-pause.
+    """
+    db = None
+    try:
+        db = SessionLocal()
+        db.execute(text("SELECT 1"))
+        db_status = "connected"
+    except Exception as e:
+        logger.error("Health check DB ping failed: %s", e)
+        db_status = "disconnected"
+    finally:
+        if db:
+            db.close()
+
+    return {"status": "ok", "database": db_status}

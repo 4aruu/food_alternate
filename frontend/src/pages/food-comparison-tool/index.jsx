@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Header from '../../components/ui/Header';
 import Icon from '../../components/AppIcon';
+import ConnectionError from '../../components/ConnectionError';
 
-// Relative /api path — Nginx proxies to backend. Set VITE_API_BASE_URL in .env.local for dev without Docker.
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+import { API_BASE } from '../../utils/api';
 
 const FoodComparisonTool = () => {
     const navigate = useNavigate();
@@ -15,14 +15,31 @@ const FoodComparisonTool = () => {
     const [comparedFoods, setComparedFoods] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
+    const [hasError, setHasError] = useState(false);
 
-    // 1. Fetch Data
-    useEffect(() => {
-        fetch(`${API_BASE}/foods/`)
-            .then(res => res.json())
-            .then(data => setAllFoods(data))
-            .catch(err => console.error('Failed to load foods', err));
+    // 1. Fetch Data (with error handling and retry)
+    const fetchFoods = useCallback(async () => {
+        setHasError(false);
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+            const res = await fetch(`${API_BASE}/foods/`, { signal: controller.signal });
+            clearTimeout(timeoutId);
+
+            if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+
+            const data = await res.json();
+            setAllFoods(data);
+        } catch (err) {
+            console.error('Failed to load foods', err);
+            setHasError(true);
+        }
     }, []);
+
+    useEffect(() => {
+        fetchFoods();
+    }, [fetchFoods]);
 
     // 2. Handle URL Params & State
     useEffect(() => {
@@ -110,6 +127,17 @@ const FoodComparisonTool = () => {
                         </button>
                     </div>
                 </div>
+
+                {/* --- Error Banner --- */}
+                {hasError && (
+                    <div className="mb-6">
+                        <ConnectionError
+                            compact
+                            message="Couldn't load foods. The server may be waking up."
+                            onRetry={fetchFoods}
+                        />
+                    </div>
+                )}
 
                 {/* --- COMPARISON MATRIX CONTAINER --- */}
                 {/* Mobile: swipe-to-scroll table; Desktop: full matrix */}

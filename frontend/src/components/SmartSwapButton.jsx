@@ -2,10 +2,7 @@ import React, { useState } from 'react';
 import { Sparkles, Loader, CheckCircle2 } from 'lucide-react';
 import axios from 'axios';
 
-// Use relative /api path so the backend URL is never baked into the JS bundle.
-// Nginx proxies /api/* → backend:8000/. For local dev without Docker, set
-// VITE_API_BASE_URL=http://127.0.0.1:8000 in frontend/.env.local (not committed).
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+import { API_BASE } from '../utils/api';
 
 const SmartSwapButton = ({ originalName, alternativeName }) => {
   const [explanation, setExplanation] = useState('');
@@ -14,7 +11,7 @@ const SmartSwapButton = ({ originalName, alternativeName }) => {
   const handleAskAI = async () => {
     setLoading(true);
     try {
-      const response = await axios.post(`${API_BASE_URL}/foods/explain-swap`, {
+      const response = await axios.post(`${API_BASE}/foods/explain-swap`, {
         original: originalName,
         alternative: alternativeName
       });

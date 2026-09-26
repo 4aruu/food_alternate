@@ -232,7 +232,7 @@ def get_alternatives(
 
     if invalid_allergens:
         valid_allergens = ", ".join(set(ALLERGEN_MAP.keys()))
-        logger.warning(f"Unknown allergens received: {invalid_allergens}")
+        logger.warning("Unknown allergens received: %s", invalid_allergens)
         # Don't fail — just log and skip unknown allergens
 
     # Normalize health goal
@@ -248,7 +248,7 @@ def get_alternatives(
 
     # Safety check: Ensure nutrition data exists
     if not original.nutrition:
-        logger.warning(f"Food '{original.name}' (ID: {food_id}) has no nutrition data.")
+        logger.warning("Food '%s' (ID: %s) has no nutrition data.", original.name, food_id)
 
     # ── DETERMINE TARGET CATEGORIES ──
     target_categories = CATEGORY_SWAP_GROUPS.get(
@@ -446,7 +446,7 @@ MEDICAL_INSIGHTS = {
 
 @router.post("/explain-swap")
 @limiter.limit("10/minute")
-async def explain_swap(http_request: Request, request: SwapRequest, db: Session = Depends(get_db)):
+async def explain_swap(request: Request, swap_body: SwapRequest, db: Session = Depends(get_db)):
     """
     Generates a multi-factor, medically validated explanation for why
     the alternative food is a better choice than the original.
@@ -455,10 +455,10 @@ async def explain_swap(http_request: Request, request: SwapRequest, db: Session 
     """
     def query():
         original_food = db.query(Food).filter(
-            Food.name.ilike(request.original)
+            Food.name.ilike(swap_body.original)
         ).first()
         alt_food = db.query(Food).filter(
-            Food.name.ilike(request.alternative)
+            Food.name.ilike(swap_body.alternative)
         ).first()
         return original_food, alt_food
 
@@ -468,7 +468,7 @@ async def explain_swap(http_request: Request, request: SwapRequest, db: Session 
 
     # Build multi-factor explanation
     benefits = []
-    primary_msg = f"{request.alternative} is a better choice for your health goals."
+    primary_msg = f"{swap_body.alternative} is a better choice for your health goals."
 
     if original_food and alt_food and original_food.nutrition and alt_food.nutrition:
         o_n = original_food.nutrition
@@ -537,9 +537,9 @@ async def explain_swap(http_request: Request, request: SwapRequest, db: Session 
             primary_msg = benefits[0]
 
     elif not original_food:
-        logger.warning(f"explain-swap: Original food '{request.original}' not found in DB")
+        logger.warning("explain-swap: Original food '%s' not found in DB", swap_body.original)
     elif not alt_food:
-        logger.warning(f"explain-swap: Alternative food '{request.alternative}' not found in DB")
+        logger.warning("explain-swap: Alternative food '%s' not found in DB", swap_body.alternative)
 
     return {
         "explanation": primary_msg,

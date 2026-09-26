@@ -4,8 +4,7 @@ import Icon from '../AppIcon';
 import UserMenu from './UserMenu';
 import MobileNavigation from './MobileNavigation';
 
-// Relative /api path — Nginx proxies to backend. Set VITE_API_BASE_URL in .env.local for dev without Docker.
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+import { API_BASE } from "../../utils/api";
 
 const Header = ({ user = null }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);

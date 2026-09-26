@@ -5,17 +5,16 @@ import Icon from '../../components/AppIcon';
 import Header from '../../components/ui/Header';
 import { addToHistory } from '../../utils/history';
 
-// Relative /api path — Nginx proxies to backend. Set VITE_API_BASE_URL in .env.local for dev without Docker.
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+import { API_BASE } from '../../utils/api';
 
-// --- 🧠 SMART ENGINE: CONTEXT & RELATABILITY LOGIC ---
+// ---  SMART ENGINE: CONTEXT & RELATABILITY LOGIC ---
 const getSmartSwaps = (currentFood, allFoods, filterMode) => {
   if (!currentFood || !allFoods || !allFoods.length) return [];
 
   // 1. Remove the item itself
   let candidates = allFoods.filter(f => f.id !== currentFood.id);
 
-  // 2. 🛡️ RELATABILITY FILTER
+  // 2. 🛡 RELATABILITY FILTER
   // Define what counts as a "Meal" vs "Non-Meal"
   const MEAL_CATEGORIES = [
       'Breakfast', 'Lunch', 'Dinner', 'Main Course',

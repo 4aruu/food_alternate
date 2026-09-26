@@ -1,4 +1,5 @@
 import random
+# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import Session
 from database import SessionLocal, engine, Base
 from models import Food, Nutrition, Allergen, Sustainability
