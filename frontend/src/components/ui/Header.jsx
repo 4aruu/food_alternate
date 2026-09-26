@@ -4,7 +4,7 @@ import Icon from '../AppIcon';
 import UserMenu from './UserMenu';
 import MobileNavigation from './MobileNavigation';
 
-import { API_BASE } from '../utils/api';
+import { API_BASE } from '../../utils/api';
 
 const Header = ({ user = null }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
