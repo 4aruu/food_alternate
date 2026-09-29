@@ -249,7 +249,7 @@ const FoodSearchResults = () => {
         )}
       </main>
       <footer className="py-12 border-t border-white/10 text-center text-gray-500 text-sm">
-        <p>&copy; 2025 NutriSwap. Designed for the future.</p>
+        <p>&copy; {new Date().getFullYear()} NutriSwap. Designed for the future.</p>
       </footer>
     </div>
   );
