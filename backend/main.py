@@ -1,17 +1,20 @@
-import os
 import json
 import logging
+import os
+
 # pyrefly: ignore-file
-from fastapi import FastAPI, Request, Depends
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
-from starlette.middleware.base import BaseHTTPMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 from sqlalchemy import text
-from database import Base, engine, get_db, SessionLocal
+from sqlalchemy.exc import SQLAlchemyError
+from starlette.middleware.base import BaseHTTPMiddleware
+
+from database import Base, SessionLocal, engine
 from routers import foods
 
 
@@ -128,8 +131,8 @@ def health_check():
         db = SessionLocal()
         db.execute(text("SELECT 1"))
         db_status = "connected"
-    except Exception as e:
-        logger.error("Health check DB ping failed: %s", e)
+    except SQLAlchemyError:
+        logger.exception("Health check DB ping failed")
         db_status = "disconnected"
     finally:
         if db:

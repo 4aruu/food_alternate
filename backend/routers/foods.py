@@ -5,18 +5,18 @@ Sources: ICMR/NIN dietary guidelines, FSSAI Eat Right India,
          Ayurvedic food pairing, Kerala clinical nutrition studies.
 """
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy.exc import SQLAlchemyError, OperationalError
-from sqlalchemy import or_, and_, desc
-from typing import List, Optional
-from database import get_db
-from models import Food, Nutrition, Allergen, Sustainability
-from schemas import FoodSchema
 from pydantic import BaseModel, field_validator
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-import logging
+from sqlalchemy.exc import OperationalError, SQLAlchemyError
+from sqlalchemy.orm import Session, joinedload
+
+from database import get_db
+from models import Allergen, Food, Nutrition
+from schemas import FoodSchema
 
 logger = logging.getLogger(__name__)
 limiter = Limiter(key_func=get_remote_address)
@@ -39,13 +39,10 @@ def safe_db_query(db: Session, query_func, error_msg: str = "Database query fail
         raise HTTPException(
             status_code=503,
             detail="Database is temporarily unavailable. Please try again."
-        )
+        ) from e
     except SQLAlchemyError as e:
         logger.error("SQLAlchemyError (%s) in query", type(e).__name__)
-        raise HTTPException(status_code=500, detail=error_msg)
-    except Exception as e:
-        logger.error("Unexpected error (%s) in query", type(e).__name__)
-        raise HTTPException(status_code=500, detail="An unexpected error occurred.")
+        raise HTTPException(status_code=500, detail=error_msg) from e
 
 
 # ── ALLERGEN MAP (Frontend → DB Column) ──────────────────────
@@ -123,7 +120,7 @@ def food_query_with_joins(db: Session):
 # ═══════════════════════════════════════════════════════════════
 # 1. GET ALL FOODS
 # ═══════════════════════════════════════════════════════════════
-@router.get("/", response_model=List[FoodSchema])
+@router.get("/", response_model=list[FoodSchema])
 @limiter.limit("30/minute")
 def get_foods(request: Request, db: Session = Depends(get_db)):
     """Returns all foods with full nutrition, allergen, and sustainability data."""
@@ -139,7 +136,7 @@ def get_foods(request: Request, db: Session = Depends(get_db)):
 # ═══════════════════════════════════════════════════════════════
 # 2. SEARCH FOODS
 # ═══════════════════════════════════════════════════════════════
-@router.get("/search", response_model=List[FoodSchema])
+@router.get("/search", response_model=list[FoodSchema])
 @limiter.limit("10/minute")
 def search_foods(request: Request, q: str = Query(..., min_length=1, max_length=100), db: Session = Depends(get_db)):
     """
@@ -191,13 +188,13 @@ def get_food_detail(request: Request, food_id: int, db: Session = Depends(get_db
 # ═══════════════════════════════════════════════════════════════
 # 4. SMART ALTERNATIVES ENGINE (Medically Validated)
 # ═══════════════════════════════════════════════════════════════
-@router.get("/{food_id}/alternatives", response_model=List[FoodSchema])
+@router.get("/{food_id}/alternatives", response_model=list[FoodSchema])
 @limiter.limit("20/minute")
 def get_alternatives(
     request: Request,
     food_id: int,
-    health_goal: Optional[str] = None,
-    avoid: List[str] = Query(default=[]),
+    health_goal: str | None = None,
+    avoid: list[str] = Query(default_factory=list),
     db: Session = Depends(get_db)
 ):
     """
@@ -231,7 +228,6 @@ def get_alternatives(
             invalid_allergens.append(allergen_clean)
 
     if invalid_allergens:
-        valid_allergens = ", ".join(set(ALLERGEN_MAP.keys()))
         logger.warning("Unknown allergens received: %s", invalid_allergens)
         # Don't fail — just log and skip unknown allergens
 

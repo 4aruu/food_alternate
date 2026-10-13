@@ -1,0 +1,23 @@
+﻿# Ruff configuration for food_alternate backend
+[lint]
+select = ["E", "F", "W", "B", "UP", "I", "BLE"]
+
+ignore = [
+    # FastAPI uses Depends()/Query() in defaults by design — official pattern.
+    "B008",
+    # SQLAlchemy ORM requires `column == False` for boolean filter expressions.
+    # Replacing with `not column` would generate invalid SQL.
+    "E712",
+    # Line length: long strings in MEDICAL_INSIGHTS and field_validator decorators
+    # cannot be meaningfully wrapped without hurting readability.
+    "E501",
+]
+
+[lint.per-file-ignores]
+# seed.py: one-off CLI script; inline ifs are intentional for density.
+"seed.py" = ["E701", "I001", "BLE001", "F401"]
+# conftest.py: imports MUST be out-of-order to patch the DB engine before
+# any app module loads. E402 cannot be fixed without breaking the test setup.
+"tests/conftest.py" = ["E402", "I001"]
+# Test files: F841 unused vars are seed helpers called for DB side-effects.
+"tests/*.py" = ["F841", "I001"]
