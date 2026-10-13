@@ -1,0 +1,123 @@
+﻿name: Production CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+# Cancel in-progress runs on the same branch to prevent stacked deploys.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ==========================================
+  # JOB 1: FRONTEND � Build Check
+  # ==========================================
+  # Note: No TypeScript (plain JSX) and no test script in package.json,
+  # so we validate the frontend by running a production Vite build.
+  frontend-ci:
+    name: Frontend � Lint & Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: ./frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Vite build acts as a compilation check (catches bad imports, missing
+      # modules, etc.). A dummy VITE_API_BASE_URL prevents build-time errors
+      # from the env var being undefined.
+      - name: Build (production bundle)
+        run: npm run build
+        env:
+          VITE_API_BASE_URL: https://placeholder.example.com
+
+  # ==========================================
+  # JOB 2: BACKEND � Lint & Test
+  # ==========================================
+  # Tests use an in-memory SQLite DB (see backend/tests/conftest.py),
+  # so no PostgreSQL service container is required here.
+  backend-ci:
+    name: Backend � Lint & Pytest
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: ./backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # Ruff is the fastest Python linter � install separately so it doesn't
+      # need to be in requirements.txt (a test/dev-only concern).
+      - name: Lint with Ruff
+        run: |
+          pip install ruff
+          ruff check .
+
+      # conftest.py patches the DB engine to SQLite before app import,
+      # so no real DATABASE_URL is needed.
+      - name: Run Pytest with coverage
+        run: pytest --cov=. --cov-report=term-missing -v
+        env:
+          # Minimal env so the app module loads without errors
+          ENVIRONMENT: development
+          ALLOWED_HOSTS: localhost,127.0.0.1,testserver
+          ALLOWED_ORIGINS: http://testserver
+
+  # ==========================================
+  # JOB 3: DEPLOY (main branch push only)
+  # ==========================================
+  deploy:
+    name: Deploy � Render (Backend) + Vercel (Frontend)
+    needs: [ frontend-ci, backend-ci ]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # -- Backend ? Render ----------------------------------
+      # Trigger a manual deploy via the Render Deploy Hook URL.
+      # Add RENDER_DEPLOY_HOOK_URL to your repo secrets:
+      #   Render dashboard ? your service ? Settings ? Deploy Hooks ? Create hook
+      - name: Trigger Render backend deploy
+        run: |
+          curl --fail-with-body -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+
+      # -- Frontend ? Vercel ---------------------------------
+      # Required secrets (set in repo Settings ? Secrets ? Actions):
+      #   VERCEL_TOKEN       � from vercel.com/account/tokens
+      #   VERCEL_ORG_ID      � from .vercel/project.json after `vercel link`
+      #   VERCEL_PROJECT_ID  � from .vercel/project.json after `vercel link`
+      - name: Deploy Frontend to Vercel (production)
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+          working-directory: ./frontend
