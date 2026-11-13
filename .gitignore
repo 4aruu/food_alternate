@@ -76,3 +76,4 @@ id_rsa.pub
 .vercel/
 .freebuff/
 history.txt
+.agent-reports/

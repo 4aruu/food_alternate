@@ -25,6 +25,13 @@ os.environ["ALLOWED_HOSTS"] = "localhost,127.0.0.1,testserver"
 os.environ["ALLOWED_ORIGINS"] = "http://testserver"
 os.environ["ENVIRONMENT"] = "development"
 
+# database.py reads its config and calls create_engine() at import time, so it
+# needs a URL before `import database` below. Assigned (not setdefault) so tests
+# can never pick up a real DATABASE_URL from the shell or a local .env
+# (load_dotenv does not override variables that are already set). The engine
+# is never connected: it is replaced with SQLite right after the import.
+os.environ["DATABASE_URL"] = "postgresql+psycopg://test:test@localhost:5432/test"
+
 # ── Create the test engine BEFORE importing anything that touches the DB ──
 SQLALCHEMY_DATABASE_URL = "sqlite://"
 test_engine = create_engine(
