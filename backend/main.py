@@ -88,7 +88,18 @@ class MaxBodySizeMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         content_length = request.headers.get("content-length")
-        if content_length and int(content_length) > self.MAX_BODY_SIZE:
+        if content_length is not None:
+            # RFC 9110: Content-Length is 1*DIGIT. Reject anything else
+            # (letters, decimals, signs, non-ASCII digits) with a 400
+            # instead of letting int() raise and turn it into a 500.
+            value = content_length.strip()
+            if not (value.isascii() and value.isdigit()):
+                return JSONResponse(
+                    status_code=400,
+                    content={"detail": "Invalid Content-Length header."},
+                )
+            content_length = int(value)
+        if content_length is not None and content_length > self.MAX_BODY_SIZE:
             return JSONResponse(
                 status_code=413,
                 content={"detail": "Request body too large. Maximum size is 1 MB."},
