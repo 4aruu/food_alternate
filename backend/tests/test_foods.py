@@ -5,7 +5,6 @@ Covers: list all, search, get by ID, alternatives engine, explain-swap.
 
 from conftest import seed_food
 
-
 # ═══════════════════════════════════════════════════════════
 # GET /foods/ — List All
 # ═══════════════════════════════════════════════════════════
@@ -36,6 +35,39 @@ def test_get_foods_returns_seeded_items(client, db):
     assert "allergens" in first
     assert "sustainability" in first
     assert first["nutrition"]["calories"] is not None
+
+
+def test_get_foods_success_is_publicly_cacheable(client, db):
+    """A 200 from /foods/ may be cached by the browser."""
+    seed_food(db, "Puttu")
+    response = client.get("/foods/")
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "public, max-age=120"
+
+
+def test_get_foods_error_is_not_publicly_cacheable(client, monkeypatch):
+    """A DB failure (503) must not be cached as public — it would pin the error."""
+    from sqlalchemy.exc import OperationalError
+
+    import routers.foods as foods_router
+
+    def broken_query(db):
+        raise OperationalError("SELECT 1", {}, Exception("db down"))
+
+    monkeypatch.setattr(foods_router, "food_query_with_joins", broken_query)
+
+    response = client.get("/foods/")
+    assert response.status_code == 503
+    assert response.headers["cache-control"] == "no-store"
+
+
+def test_get_foods_empty_result_is_not_cached(client, db):
+    """An empty list must not be cached, so seeded data shows up immediately."""
+    assert client.get("/foods/").json() == []
+
+    seed_food(db, "Dosa")
+    data = client.get("/foods/").json()
+    assert [item["name"] for item in data] == ["Dosa"]
 
 
 # ═══════════════════════════════════════════════════════════

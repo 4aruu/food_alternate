@@ -7,7 +7,7 @@ import ConnectionError from '../../components/ConnectionError';
 import FoodGridSkeleton from '../../components/FoodGridSkeleton';
 import { addToHistory } from '../../utils/history';
 
-import { API_BASE } from '../../utils/api';
+import { getFoods } from '../../utils/api';
 
 // --- SUB-COMPONENTS ---
 
@@ -96,19 +96,9 @@ const FoodSearchResults = () => {
     setHasError(false);
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-      const response = await fetch(`${API_BASE}/foods/`, {
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw new Error(`Server responded with ${response.status}`);
-      }
-
-      const data = await response.json();
+      // Shared, deduplicated fetch (module-level cache) — the Header
+      // fetches the same list, so don't hit the API twice per page load.
+      const data = await getFoods();
       setAllFoods(data);
       setIsLoading(false);
     } catch (error) {

@@ -70,3 +70,10 @@ Thumbs.db
 *.cer
 id_rsa
 id_rsa.pub
+
+# Local tool folders and saved git-log dumps
+.playwright-mcp/
+.vercel/
+.freebuff/
+history.txt
+.agent-reports/

@@ -11,6 +11,29 @@
 export const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 /**
+ * Shared, deduplicated fetch of the full foods list.
+ *
+ * Header + every page used to each fetch /foods/ independently, so a
+ * single page load hit the API 2-4 times (and burned rate-limit quota
+ * on the backend). This caches the in-flight/resolved promise at module
+ * level so any number of components share ONE request per session.
+ * The dataset is seeded/static, so session-lifetime caching is safe.
+ * On failure the promise is dropped so the next caller can retry.
+ */
+let foodsPromise = null;
+export function getFoods() {
+  if (!foodsPromise) {
+    // 15 s (not the 10 s default): Render Free cold starts are slow, and
+    // this is the first request most pages make.
+    foodsPromise = apiFetch('/foods/', { timeout: 15000 }).catch((err) => {
+      foodsPromise = null; // allow retry on next call
+      throw err;
+    });
+  }
+  return foodsPromise;
+}
+
+/**
  * Fetch wrapper with timeout and consistent error handling.
  *
  * @param {string} path    - API path (e.g. '/foods', '/health')

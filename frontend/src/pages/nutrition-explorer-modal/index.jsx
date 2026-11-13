@@ -5,7 +5,7 @@ import Icon from '../../components/AppIcon';
 import Header from '../../components/ui/Header';
 import { addToHistory } from '../../utils/history';
 
-import { API_BASE } from '../../utils/api';
+import { getFoods } from '../../utils/api';
 
 // --- 🧠 SMART ENGINE: CONTEXT & RELATABILITY LOGIC ---
 const getSmartSwaps = (currentFood, allFoods, filterMode) => {
@@ -109,10 +109,9 @@ const NutritionExplorerModal = () => {
   const [allFoods, setAllFoods] = useState([]);
   const [swaps, setSwaps] = useState([]);
 
-  // 1. Fetch Database
+  // 1. Fetch Database (shared, deduplicated fetch — module-level cache)
   useEffect(() => {
-    fetch(`${API_BASE}/foods/`)
-      .then(res => res.json())
+    getFoods()
       .then(data => setAllFoods(data))
       .catch(err => console.error("Failed to load foods", err));
   }, []);

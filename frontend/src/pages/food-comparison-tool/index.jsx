@@ -5,7 +5,7 @@ import Header from '../../components/ui/Header';
 import Icon from '../../components/AppIcon';
 import ConnectionError from '../../components/ConnectionError';
 
-import { API_BASE } from '../../utils/api';
+import { getFoods } from '../../utils/api';
 
 const FoodComparisonTool = () => {
     const navigate = useNavigate();
@@ -21,15 +21,8 @@ const FoodComparisonTool = () => {
     const fetchFoods = useCallback(async () => {
         setHasError(false);
         try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-            const res = await fetch(`${API_BASE}/foods/`, { signal: controller.signal });
-            clearTimeout(timeoutId);
-
-            if (!res.ok) throw new Error(`Server responded with ${res.status}`);
-
-            const data = await res.json();
+            // Shared, deduplicated fetch (module-level cache)
+            const data = await getFoods();
             setAllFoods(data);
         } catch (err) {
             console.error('Failed to load foods', err);

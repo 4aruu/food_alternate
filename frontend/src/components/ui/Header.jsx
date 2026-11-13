@@ -4,7 +4,7 @@ import Icon from '../AppIcon';
 import UserMenu from './UserMenu';
 import MobileNavigation from './MobileNavigation';
 
-import { API_BASE } from '../../utils/api';
+import { getFoods } from '../../utils/api';
 
 const Header = ({ user = null }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -33,10 +33,11 @@ const Header = ({ user = null }) => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // 2. FETCH DATABASE ON MOUNT
+  // 2. FETCH DATABASE ON MOUNT (shared, deduplicated fetch — every page
+  // also needs this list, so a module-level cache serves all of them
+  // from ONE request instead of 2-4 per page load)
   useEffect(() => {
-    fetch(`${API_BASE}/foods/`)
-      .then(res => res.json())
+    getFoods()
       .then(data => setAllFoods(data))
       .catch(err => console.error("Header Search Error:", err));
   }, []);

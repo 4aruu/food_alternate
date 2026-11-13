@@ -9,8 +9,9 @@ We also set ALLOWED_HOSTS to include 'testserver' so the TrustedHostMiddleware
 doesn't reject test requests.
 """
 
-import sys
 import os
+import sys
+
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -24,6 +25,13 @@ os.environ["ALLOWED_HOSTS"] = "localhost,127.0.0.1,testserver"
 os.environ["ALLOWED_ORIGINS"] = "http://testserver"
 os.environ["ENVIRONMENT"] = "development"
 
+# database.py reads its config and calls create_engine() at import time, so it
+# needs a URL before `import database` below. Assigned (not setdefault) so tests
+# can never pick up a real DATABASE_URL from the shell or a local .env
+# (load_dotenv does not override variables that are already set). The engine
+# is never connected: it is replaced with SQLite right after the import.
+os.environ["DATABASE_URL"] = "postgresql+psycopg://test:test@localhost:5432/test"
+
 # ── Create the test engine BEFORE importing anything that touches the DB ──
 SQLALCHEMY_DATABASE_URL = "sqlite://"
 test_engine = create_engine(
@@ -35,14 +43,16 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_
 
 # Patch database module's engine and SessionLocal before main.py is imported
 import database
+
 database.engine = test_engine
 database.SessionLocal = TestingSessionLocal
 
 # NOW it's safe to import — main.py's create_all will use our SQLite engine
 from database import Base, get_db
-from models import Food, Nutrition, Allergen, Sustainability
-from main import app
 from fastapi.testclient import TestClient
+from main import app
+from models import Allergen, Food, Nutrition, Sustainability
+from routers.foods import clear_foods_cache
 
 
 def override_get_db():
@@ -59,6 +69,9 @@ app.dependency_overrides[get_db] = override_get_db
 @pytest.fixture(autouse=True)
 def setup_database():
     """Create tables before each test, drop after."""
+    # The /foods/ endpoint serves from an in-process TTL cache; it must be
+    # reset per test or one test's data would leak into the next.
+    clear_foods_cache()
     Base.metadata.create_all(bind=test_engine)
     yield
     Base.metadata.drop_all(bind=test_engine)

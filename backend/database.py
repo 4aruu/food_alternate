@@ -1,8 +1,9 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
-from dotenv import load_dotenv
-import os
 import logging
+import os
+
+from dotenv import load_dotenv
+from sqlalchemy import create_engine
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 logger = logging.getLogger(__name__)
 load_dotenv()
@@ -26,12 +27,20 @@ if not DATABASE_URL:
 # SECURITY: Never log the DATABASE_URL — it contains credentials.
 logger.info("Database engine initialising for host: %s", DB_HOST or "<from DATABASE_URL>")
 
+# CONNECTION BUDGET (Aiven Free tier allows max_connections = 20):
+# The backend runs WEB_CONCURRENCY=2 gunicorn workers, and each worker
+# gets its OWN pool. So the worst case is:
+#   2 workers x (pool_size 2 + max_overflow 2) = 8 connections
+# Well under Aiven's cap of 20 (minus a few slots Aiven itself uses).
+# With the old pool_size=5 + max_overflow=10 this was 2 x 15 = 30 —
+# guaranteed "FATAL: too many clients" as soon as 2+ users were active.
 engine = create_engine(
     DATABASE_URL,
-    pool_pre_ping=True,    # Detect stale connections before using them
+    pool_pre_ping=True,     # Detect stale connections before using them
     pool_recycle=300,       # Recycle connections every 5 minutes (Aiven drops idle ones)
-    pool_size=5,
-    max_overflow=10,
+    pool_size=2,
+    max_overflow=2,
+    pool_timeout=10,        # Fail fast instead of hanging threads when exhausted
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
