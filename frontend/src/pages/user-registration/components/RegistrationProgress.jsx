@@ -1,10 +1,9 @@
 import React from 'react';
 import Icon from '../../../components/AppIcon';
 
-const RegistrationProgress = ({ currentStep = 1, totalSteps = 4, stepLabels = [] }) => {
+const RegistrationProgress = ({ currentStep = 1, totalSteps = 3, stepLabels = [] }) => {
   const defaultLabels = [
-    'Account Details',
-    'Dietary Preferences', 
+    'Dietary Preferences',
     'Allergen Profile',
     'Sustainability Settings'
   ];

@@ -1,58 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Header from '../../components/ui/Header';
 import NavigationBreadcrumbs from '../../components/ui/NavigationBreadcrumbs';
 import RegistrationProgress from './components/RegistrationProgress';
-import AccountDetailsForm from './components/AccountDetailsForm';
 import DietaryPreferencesForm from './components/DietaryPreferencesForm';
 import AllergenProfileForm from './components/AllergenProfileForm';
 import SustainabilitySettingsForm from './components/SustainabilitySettingsForm';
-import SocialRegistrationOptions from './components/SocialRegistrationOptions';
 import TrustSignals from './components/TrustSignals';
-import Button from '../../components/ui/Button';
 import Icon from '../../components/AppIcon';
 
+// "Set up preferences": a no-account flow. Nothing here is persisted
+// (no localStorage/sessionStorage/cookies); the choices live only in this
+// component's state for the current visit.
 const UserRegistration = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
     dietaryPreferences: [],
     allergens: [],
     sustainabilityImportance: 3,
     sustainabilityPriorities: []
   });
-  const [isLoading, setIsLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  const totalSteps = 4;
+  const totalSteps = 3;
   const stepLabels = [
-    'Account Details',
     'Dietary Preferences',
     'Allergen Profile',
     'Sustainability Settings'
   ];
-
-  useEffect(() => {
-    // Save form data to localStorage for persistence
-    localStorage.setItem('registrationFormData', JSON.stringify(formData));
-  }, [formData]);
-
-  useEffect(() => {
-    // Load saved form data on component mount
-    const savedData = localStorage.getItem('registrationFormData');
-    if (savedData) {
-      try {
-        const parsedData = JSON.parse(savedData);
-        setFormData(parsedData);
-      } catch (error) {
-        console.error('Error loading saved form data:', error);
-      }
-    }
-  }, []);
 
   const handleNavigate = (path) => {
     window.location.href = path;
@@ -74,41 +49,13 @@ const UserRegistration = () => {
     }
   };
 
-  const handleCompleteRegistration = async () => {
-    setIsLoading(true);
-
-    try {
-      // Mock registration API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Clear saved form data
-      localStorage.removeItem('registrationFormData');
-
-      // Show success state
-      setShowSuccess(true);
-
-      // Redirect to dashboard after success
-      setTimeout(() => {
-        handleNavigate('/user-dashboard');
-      }, 3000);
-
-    } catch (error) {
-      console.error('Registration error:', error);
-      setIsLoading(false);
-    }
-  };
-
-  const handleSocialRegister = (provider) => {
-    console.log(`Social registration with ${provider}`);
-    // Mock social registration
-    setTimeout(() => {
-      handleNavigate('/user-dashboard');
-    }, 1000);
+  const handleCompleteSetup = () => {
+    setShowSuccess(true);
   };
 
   const breadcrumbs = [
-    { label: 'Home', path: '/landing-page', icon: 'Home' },
-    { label: 'Sign Up', path: '/user-registration', icon: 'UserPlus', isLast: true }
+    { label: 'Home', path: '/', icon: 'Home' },
+    { label: 'Set up preferences', path: '/user-registration', icon: 'SlidersHorizontal', isLast: true }
   ];
 
   const pageVariants = {
@@ -141,19 +88,19 @@ const UserRegistration = () => {
                 </div>
 
                 <h1 className="text-2xl font-bold text-foreground mb-4">
-                  Welcome to NutriSwap!
+                  Preferences set
                 </h1>
 
                 <p className="text-muted-foreground mb-6">
-                  Your account has been created successfully. We're setting up your personalized dashboard...
+                  Personalised filtering based on these choices is coming soon. Nothing is stored in your browser or sent to a server.
                 </p>
 
-                <div className="flex items-center justify-center space-x-2 text-accent">
-                  <div className="animate-spin">
-                    <Icon name="Loader2" size={20} />
-                  </div>
-                  <span className="text-sm font-medium">Redirecting to dashboard...</span>
-                </div>
+                <button
+                  onClick={() => handleNavigate('/food-search-results')}
+                  className="px-6 py-3 bg-gradient-to-r from-accent to-secondary text-slate-900 font-semibold rounded-xl hover:shadow-neon transition-all duration-300"
+                >
+                  Start exploring foods
+                </button>
               </div>
             </motion.div>
           </div>
@@ -174,7 +121,7 @@ const UserRegistration = () => {
 
           <div className="max-w-4xl mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Main Registration Form */}
+              {/* Main Preferences Form */}
               <div className="lg:col-span-2">
                 <div className="glass rounded-2xl p-8 border border-glass-border shadow-glass-lg">
                   <RegistrationProgress
@@ -193,23 +140,15 @@ const UserRegistration = () => {
                       transition={{ duration: 0.3 }}
                     >
                       {currentStep === 1 && (
-                        <AccountDetailsForm
-                          formData={formData}
-                          onUpdate={handleFormUpdate}
-                          onNext={handleNextStep}
-                        />
-                      )}
-
-                      {currentStep === 2 && (
                         <DietaryPreferencesForm
                           formData={formData}
                           onUpdate={handleFormUpdate}
                           onNext={handleNextStep}
-                          onBack={handlePreviousStep}
+                          onBack={() => handleNavigate('/')}
                         />
                       )}
 
-                      {currentStep === 3 && (
+                      {currentStep === 2 && (
                         <AllergenProfileForm
                           formData={formData}
                           onUpdate={handleFormUpdate}
@@ -218,67 +157,23 @@ const UserRegistration = () => {
                         />
                       )}
 
-                      {currentStep === 4 && (
+                      {currentStep === 3 && (
                         <SustainabilitySettingsForm
                           formData={formData}
                           onUpdate={handleFormUpdate}
-                          onComplete={handleCompleteRegistration}
+                          onComplete={handleCompleteSetup}
                           onBack={handlePreviousStep}
                         />
                       )}
                     </motion.div>
                   </AnimatePresence>
-
-                  {isLoading && (
-                    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
-                      <div className="glass rounded-xl p-6 border border-glass-border">
-                        <div className="flex items-center space-x-3">
-                          <div className="animate-spin">
-                            <Icon name="Loader2" size={24} className="text-accent" />
-                          </div>
-                          <span className="text-foreground font-medium">
-                            Creating your account...
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
-
-                {/* Social Registration Options - Only show on first step */}
-                {currentStep === 1 && (
-                  <div className="mt-6">
-                    <SocialRegistrationOptions onSocialRegister={handleSocialRegister} />
-                  </div>
-                )}
               </div>
 
               {/* Sidebar */}
               <div className="lg:col-span-1 space-y-6">
                 {/* Trust Signals */}
                 <TrustSignals />
-
-                {/* Help Section */}
-                <div className="glass rounded-xl p-6 border border-glass-border">
-                  <div className="text-center">
-                    <Icon name="HelpCircle" size={32} className="text-accent mx-auto mb-4" />
-                    <h3 className="font-semibold text-foreground mb-2">
-                      Need Help?
-                    </h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Our support team is here to assist you with the registration process.
-                    </p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      iconName="MessageCircle"
-                      iconPosition="left"
-                      onClick={() => handleNavigate('/help')}
-                    >
-                      Contact Support
-                    </Button>
-                  </div>
-                </div>
 
                 {/* Quick Stats */}
                 <div className="glass rounded-xl p-6 border border-glass-border">

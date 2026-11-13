@@ -14,14 +14,9 @@ const NavigationBreadcrumbs = ({
     '/landing-page': { label: 'Discover', icon: 'Search' },
     '/food-search-results': { label: 'Search Results', icon: 'List' },
     '/nutrition-explorer-modal': { label: 'Nutrition Explorer', icon: 'BarChart3' },
-    '/user-dashboard': { label: 'Dashboard', icon: 'LayoutDashboard' },
+    '/dashboard': { label: 'Dashboard', icon: 'LayoutDashboard' },
     '/food-comparison-tool': { label: 'Compare Foods', icon: 'GitCompare' },
-    '/user-registration': { label: 'Sign Up', icon: 'UserPlus' },
-    '/profile-settings': { label: 'Profile Settings', icon: 'Settings' },
-    '/dietary-preferences': { label: 'Dietary Preferences', icon: 'Heart' },
-    '/saved-alternatives': { label: 'Saved Alternatives', icon: 'Bookmark' },
-    '/help': { label: 'Help & Support', icon: 'HelpCircle' },
-    '/sign-in': { label: 'Sign In', icon: 'LogIn' }
+    '/user-registration': { label: 'Set up preferences', icon: 'SlidersHorizontal' }
   };
 
   const generateBreadcrumbs = () => {

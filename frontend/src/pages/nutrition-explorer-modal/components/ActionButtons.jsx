@@ -208,7 +208,7 @@ const ActionButtons = ({
         </h4>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <button
-            onClick={() => window.open('/user-dashboard', '_blank')}
+            onClick={() => window.open('/dashboard', '_blank')}
             className="flex flex-col items-center p-3 rounded-lg glass-subtle hover:shadow-neon transition-all duration-200 group"
           >
             <Icon name="LayoutDashboard" size={20} className="text-primary mb-2 group-hover:text-accent transition-colors duration-200" />
@@ -241,9 +241,9 @@ const ActionButtons = ({
             onClick={() => window.open('/user-registration', '_blank')}
             className="flex flex-col items-center p-3 rounded-lg glass-subtle hover:shadow-neon transition-all duration-200 group"
           >
-            <Icon name="UserPlus" size={20} className="text-warning mb-2 group-hover:text-accent transition-colors duration-200" />
+            <Icon name="SlidersHorizontal" size={20} className="text-warning mb-2 group-hover:text-accent transition-colors duration-200" />
             <span className="text-xs font-medium text-foreground group-hover:text-accent transition-colors duration-200">
-              Sign Up
+              Preferences
             </span>
           </button>
         </div>

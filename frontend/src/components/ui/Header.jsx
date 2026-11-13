@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import Icon from '../AppIcon';
-import UserMenu from './UserMenu';
 import MobileNavigation from './MobileNavigation';
 
 import { getFoods } from '../../utils/api';
@@ -215,11 +214,13 @@ const Header = ({ user = null }) => {
                 )}
               </div>
 
-              {/* Sign In Button */}
-              <button className="hidden sm:flex items-center gap-2 bg-[#1a1a1a] hover:bg-[#222] border border-white/10 text-white px-5 py-2.5 rounded-full text-sm font-bold transition-all hover:scale-105 hover:border-emerald-500/30 active:scale-95">
-                <Icon name="User" size={18} className="text-emerald-400" />
-                <span>Sign In</span>
-                <Icon name="ChevronDown" size={14} className="text-gray-500" />
+              {/* Preferences (there are no accounts) */}
+              <button
+                onClick={() => handleNavigation('/user-registration')}
+                className="hidden sm:flex items-center gap-2 bg-[#1a1a1a] hover:bg-[#222] border border-white/10 text-white px-5 py-2.5 rounded-full text-sm font-bold transition-all hover:scale-105 hover:border-emerald-500/30 active:scale-95"
+              >
+                <Icon name="SlidersHorizontal" size={18} className="text-emerald-400" />
+                <span>Set up preferences</span>
               </button>
 
               {/* Mobile Menu Toggle */}
