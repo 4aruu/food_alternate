@@ -5,12 +5,13 @@ FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Render terminates TLS and proxies every request from its own IPs, so
-# request.client.host would otherwise be Render's proxy IP for ALL users.
-# uvicorn's UvicornWorker reads this env var, parses X-Forwarded-For and
-# takes the RIGHT-most entry (the one appended by the trusted proxy),
-# giving each visitor their real client IP. Safe here: the container port
-# is never exposed directly — all traffic arrives via Render's proxy.
+# Render terminates TLS and proxies every request from its own IPs.
+# With FORWARDED_ALLOW_IPS=* uvicorn trusts every hop and sets
+# request.client.host to the LEFT-most X-Forwarded-For entry, which the
+# client controls — so request.client.host is SPOOFABLE and must not be
+# used for any security decision. The rate limiter is unaffected: it
+# keys on the right-most X-Forwarded-For entry itself (see
+# routers/foods.py rate_limit_key), not on request.client.host.
 ENV FORWARDED_ALLOW_IPS=*
 
 WORKDIR /app

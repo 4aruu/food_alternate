@@ -175,8 +175,11 @@ def get_foods(request: Request, db: Session = Depends(get_db)):
 
     # Serialize OUTSIDE the session (avoids detached-instance lazy loads)
     payload = [FoodSchema.model_validate(f).model_dump() for f in results]
-    _foods_cache["data"] = payload
-    _foods_cache["expires_at"] = now + _FOODS_CACHE_TTL_SECONDS
+    # Never cache an empty list: it means the DB is unseeded (or a seed is
+    # in progress), and caching it would hide the data once it arrives.
+    if payload:
+        _foods_cache["data"] = payload
+        _foods_cache["expires_at"] = now + _FOODS_CACHE_TTL_SECONDS
     return payload
 
 

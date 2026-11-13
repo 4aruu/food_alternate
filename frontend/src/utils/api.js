@@ -23,7 +23,9 @@ export const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 let foodsPromise = null;
 export function getFoods() {
   if (!foodsPromise) {
-    foodsPromise = apiFetch('/foods/').catch((err) => {
+    // 15 s (not the 10 s default): Render Free cold starts are slow, and
+    // this is the first request most pages make.
+    foodsPromise = apiFetch('/foods/', { timeout: 15000 }).catch((err) => {
       foodsPromise = null; // allow retry on next call
       throw err;
     });

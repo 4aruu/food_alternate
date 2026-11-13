@@ -88,8 +88,13 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
         # The full foods list is public, static (seeded) data — let the
         # browser cache it briefly so reloads don't re-hit the API.
-        # Everything else stays private/no-store.
-        if request.method == "GET" and request.url.path.rstrip("/") == "/foods":
+        # Only successful responses: a cached 429/5xx would keep showing
+        # an error for the full max-age. Everything else stays no-store.
+        if (
+            request.method == "GET"
+            and request.url.path.rstrip("/") == "/foods"
+            and response.status_code == 200
+        ):
             response.headers["Cache-Control"] = "public, max-age=120"
         else:
             response.headers["Cache-Control"] = "no-store"
