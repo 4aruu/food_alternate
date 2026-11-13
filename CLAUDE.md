@@ -2,15 +2,24 @@
 
 ## Commands
 
-- Backend test & lint: `pytest && ruff check .`
-- Frontend build & lint: `npm run build && npm run lint`
+- Backend test & lint: activate the repo `.venv` (Windows: `.venv\Scripts\activate`, Linux/macOS: `source .venv/bin/activate`), then `cd backend && pytest && ruff check .`
+- Backend as CI runs it: `cd backend && pytest --cov=. --cov-report=term-missing -v`
+- Backend dev dependencies: `pip install -r backend/requirements-dev.txt` (includes `requirements.txt`; production installs `requirements.txt` only)
+- Note: the local `.venv` is out of sync with `requirements.txt` and should be rebuilt from `requirements-dev.txt`.
+- Frontend build: `cd frontend && npm run build` (no lint script yet; ESLint is a planned milestone)
 
 ## Directory Map
 
-- `backend/app/api/` — FastAPI routers and Pydantic request validation
-- `backend/app/services/` — Deterministic health-recommendation and alternative engines
-- `backend/app/db/` — SQLAlchemy models and Alembic migrations
-- `frontend/src/components/` — React UI components and feature modals
+- `backend/main.py` — FastAPI app, middleware (security headers, body size, CORS, rate limiter), `/` and `/health`
+- `backend/routers/foods.py` — `/foods` endpoints, alternatives engine, request validation, rate-limit key, foods cache
+- `backend/models.py` — SQLAlchemy models (Food, Nutrition, Allergen, Sustainability)
+- `backend/schemas.py` — Pydantic response schemas
+- `backend/database.py` — engine, session and DB URL configuration
+- `backend/seed.py` — seed data; `backend/check_db.py` — DB inspection script
+- `backend/tests/` — pytest suite (in-memory SQLite via `conftest.py`)
+- `frontend/src/components/` — shared React components (`ui/` holds header, nav, inputs)
+- `frontend/src/pages/` — page-level views and their feature components
+- `frontend/src/utils/` — API client (`api.js`) and helpers
 
 ## Active Project Constraints & Tier 1 Guardrails
 
