@@ -9,8 +9,9 @@ We also set ALLOWED_HOSTS to include 'testserver' so the TrustedHostMiddleware
 doesn't reject test requests.
 """
 
-import sys
 import os
+import sys
+
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -35,14 +36,16 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_
 
 # Patch database module's engine and SessionLocal before main.py is imported
 import database
+
 database.engine = test_engine
 database.SessionLocal = TestingSessionLocal
 
 # NOW it's safe to import — main.py's create_all will use our SQLite engine
 from database import Base, get_db
-from models import Food, Nutrition, Allergen, Sustainability
-from main import app
 from fastapi.testclient import TestClient
+from main import app
+from models import Allergen, Food, Nutrition, Sustainability
+from routers.foods import clear_foods_cache
 
 
 def override_get_db():
@@ -59,6 +62,9 @@ app.dependency_overrides[get_db] = override_get_db
 @pytest.fixture(autouse=True)
 def setup_database():
     """Create tables before each test, drop after."""
+    # The /foods/ endpoint serves from an in-process TTL cache; it must be
+    # reset per test or one test's data would leak into the next.
+    clear_foods_cache()
     Base.metadata.create_all(bind=test_engine)
     yield
     Base.metadata.drop_all(bind=test_engine)

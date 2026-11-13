@@ -5,7 +5,6 @@ Covers: list all, search, get by ID, alternatives engine, explain-swap.
 
 from conftest import seed_food
 
-
 # ═══════════════════════════════════════════════════════════
 # GET /foods/ — List All
 # ═══════════════════════════════════════════════════════════

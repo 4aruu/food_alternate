@@ -5,7 +5,6 @@ These verify the API rejects malformed/malicious input correctly.
 
 from conftest import seed_food
 
-
 # ═══════════════════════════════════════════════════════════
 # Search Input Validation
 # ═══════════════════════════════════════════════════════════

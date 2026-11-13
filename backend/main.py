@@ -9,7 +9,6 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from slowapi.util import get_remote_address
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -44,7 +43,11 @@ logging.basicConfig(level=logging.INFO, handlers=[_handler])
 logger = logging.getLogger(__name__)
 
 # ── Rate Limiter ──────────────────────────────────────────────
-limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
+# KEY INSIGHT: behind Render's proxy, request.client.host is the proxy
+# IP for EVERY visitor — keying on it makes all users share ONE global
+# bucket. rate_limit_key reads the right-most X-Forwarded-For entry
+# (appended by Render's proxy, unspoofable) so limits are per-user.
+limiter = Limiter(key_func=foods.rate_limit_key, default_limits=["60/minute"])
 
 # ── App (no debug info exposed in production) ─────────────────
 app = FastAPI(
@@ -83,7 +86,13 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
         response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
-        response.headers["Cache-Control"] = "no-store"
+        # The full foods list is public, static (seeded) data — let the
+        # browser cache it briefly so reloads don't re-hit the API.
+        # Everything else stays private/no-store.
+        if request.method == "GET" and request.url.path.rstrip("/") == "/foods":
+            response.headers["Cache-Control"] = "public, max-age=120"
+        else:
+            response.headers["Cache-Control"] = "no-store"
         # Remove server fingerprint
         if "server" in response.headers:
             del response.headers["server"]

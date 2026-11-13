@@ -6,11 +6,11 @@ Sources: ICMR/NIN dietary guidelines, FSSAI Eat Right India,
 """
 
 import logging
+import time
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, field_validator
 from slowapi import Limiter
-from slowapi.util import get_remote_address
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 from sqlalchemy.orm import Session, joinedload
 
@@ -19,7 +19,39 @@ from models import Allergen, Food, Nutrition
 from schemas import FoodSchema
 
 logger = logging.getLogger(__name__)
-limiter = Limiter(key_func=get_remote_address)
+
+
+# ── RATE-LIMIT KEY (real client IP behind Render's proxy) ───
+# Render puts every request behind its proxy, so request.client.host
+# is the proxy IP for ALL users — keying limits on it would make
+# every visitor share a single global rate-limit bucket. We read the
+# RIGHT-most X-Forwarded-For entry: that is the one appended by the
+# nearest trusted proxy (Render), so clients cannot spoof it.
+def rate_limit_key(request: Request) -> str:
+    xff = request.headers.get("x-forwarded-for")
+    if xff:
+        return xff.split(",")[-1].strip()
+    if request.client:
+        return request.client.host
+    return "unknown"
+
+
+limiter = Limiter(key_func=rate_limit_key)
+
+
+# ── IN-PROCESS TTL CACHE FOR THE FOODS LIST ────────────────
+# The foods table is seeded, read-only data. Caching the serialized
+# list briefly means page loads / header fetches stop re-querying
+# Postgres (huge win on Render Free's 0.1 CPU), and each gunicorn
+# worker serves from its own memory.
+_FOODS_CACHE_TTL_SECONDS = 120
+_foods_cache: dict = {"data": None, "expires_at": 0.0}
+
+
+def clear_foods_cache():
+    """Reset the in-process foods cache (used by tests after each run)."""
+    _foods_cache["data"] = None
+    _foods_cache["expires_at"] = 0.0
 
 router = APIRouter(prefix="/foods", tags=["foods"])
 
@@ -123,14 +155,29 @@ def food_query_with_joins(db: Session):
 @router.get("/", response_model=list[FoodSchema])
 @limiter.limit("30/minute")
 def get_foods(request: Request, db: Session = Depends(get_db)):
-    """Returns all foods with full nutrition, allergen, and sustainability data."""
+    """Returns all foods with full nutrition, allergen, and sustainability data.
+
+    Served from a short-lived in-process cache — the dataset is static
+    (seeded once), so there is no value in re-querying Postgres for it
+    on every page load.
+    """
+    now = time.monotonic()
+    if _foods_cache["data"] is not None and now < _foods_cache["expires_at"]:
+        return _foods_cache["data"]
+
     def query():
         results = food_query_with_joins(db).all()
         if not results:
             logger.warning("No foods found in database. Has seed.py been run?")
         return results
 
-    return safe_db_query(db, query, "Failed to fetch foods list")
+    results = safe_db_query(db, query, "Failed to fetch foods list")
+
+    # Serialize OUTSIDE the session (avoids detached-instance lazy loads)
+    payload = [FoodSchema.model_validate(f).model_dump() for f in results]
+    _foods_cache["data"] = payload
+    _foods_cache["expires_at"] = now + _FOODS_CACHE_TTL_SECONDS
+    return payload
 
 
 # ═══════════════════════════════════════════════════════════════

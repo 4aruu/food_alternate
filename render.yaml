@@ -20,18 +20,12 @@ services:
     buildCommand: cd frontend && npm ci && npm run build
     staticPublishPath: ./frontend/build
     envVars:
+      # NOTE: was previously declared TWICE (a fromService entry and a
+      # literal value) — duplicate YAML keys are invalid/ambiguous, the
+      # literal wins. Kept a single explicit entry with the https scheme.
       - key: VITE_API_BASE_URL
-        fromService:
-          type: web
-          name: food-alternate-backend
-          property: host
-        # Render provides just the domain (e.g., app-name.onrender.com)
-        # However, we need the scheme. A known Render trick is to prepend https:// manually if needed, 
-        # but often it's safer to just set it manually if it doesn't work out of the box.
-        # But we can also set it explicitly:
-      - key: VITE_API_BASE_URL
-        value: "https://food-alternate-backend.onrender.com" # You may need to update this URL after the backend is created.
-        
+        value: "https://food-alternate-backend.onrender.com" # Update if the backend service name differs.
+
     routes:
       - type: rewrite
         source: /*

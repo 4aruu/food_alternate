@@ -1,8 +1,9 @@
 import random
+
+from database import Base, SessionLocal, engine
+from models import Allergen, Food, Nutrition, Sustainability
+
 # pyrefly: ignore [missing-import]
-from sqlalchemy.orm import Session
-from database import SessionLocal, engine, Base
-from models import Food, Nutrition, Allergen, Sustainability
 
 # --- 1. THE PRECISION DATABASE (Lab-Grade Estimates per Standard Serving) ---
 REAL_NUTRITION_DB = {
@@ -894,7 +895,7 @@ def generate_smart_data(category, name, desc):
         if data["protein"] > 15: nutri_score += 10
         if data["fiber"] > 5: nutri_score += 5
 
-        if nutri_score > 100: nutri_score = 100
+        nutri_score = min(nutri_score, 100)
 
         return data, {"carbon": 1.5, "water": 200, "land": 1.5, "score": eco_score}, [], nutri_score
 
