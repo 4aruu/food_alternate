@@ -12,8 +12,13 @@ const STATUS_MESSAGES = [
   { text: "Just a moment longer…", icon: "⏳" },
 ];
 
+// Each data route mounts its own BackendWakeUp. Once the backend has answered
+// in this page session, later mounts render immediately instead of replaying
+// the overlay on every navigation.
+let backendConfirmedReady = false;
+
 const BackendWakeUp = ({ children }) => {
-  const [isReady, setIsReady] = useState(false);
+  const [isReady, setIsReady] = useState(backendConfirmedReady);
   const [isFading, setIsFading] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [messageIndex, setMessageIndex] = useState(0);
@@ -39,6 +44,8 @@ const BackendWakeUp = ({ children }) => {
 
   // Ping the backend health endpoint
   useEffect(() => {
+    if (backendConfirmedReady) return undefined;
+
     let cancelled = false;
     let timeout;
 
@@ -53,6 +60,7 @@ const BackendWakeUp = ({ children }) => {
         clearTimeout(timeoutId);
 
         if (!cancelled && response.ok) {
+          backendConfirmedReady = true;
           // Ensure minimum display time for smooth UX
           const elapsed = Date.now() - startTime.current;
           const remaining = Math.max(0, minDisplayTime - elapsed);

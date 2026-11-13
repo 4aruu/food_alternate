@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+from contextlib import asynccontextmanager
 
 # pyrefly: ignore-file
 from fastapi import FastAPI, Request
@@ -49,8 +50,28 @@ logger = logging.getLogger(__name__)
 # (appended by Render's proxy, unspoofable) so limits are per-user.
 limiter = Limiter(key_func=foods.rate_limit_key, default_limits=["60/minute"])
 
+# ── Startup (lifespan) ────────────────────────────────────────
+# Table creation runs at startup, not at import time, and a database
+# failure here is logged but never fatal: the process must come up even
+# when the DB is unreachable (e.g. Aiven powered off), so /livez can
+# answer and /health can report 503 instead of the service crash-looping.
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        Base.metadata.create_all(bind=engine)
+    except SQLAlchemyError as e:
+        # Log only the exception type: the message can contain the DSN.
+        logger.error(
+            "Database unavailable at startup (%s); starting without it. "
+            "/health will report 503 until it is reachable.",
+            type(e).__name__,
+        )
+    yield
+
+
 # ── App (no debug info exposed in production) ─────────────────
 app = FastAPI(
+    lifespan=lifespan,
     title="Food Alternatives API",
     docs_url=None if os.getenv("ENVIRONMENT", "development") == "production" else "/docs",
     redoc_url=None if os.getenv("ENVIRONMENT", "development") == "production" else "/redoc",
@@ -122,8 +143,7 @@ _raw_hosts = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1")
 ALLOWED_HOSTS = [h.strip() for h in _raw_hosts.split(",") if h.strip()]
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=ALLOWED_HOSTS)
 
-# ── Database & Routes ─────────────────────────────────────────
-Base.metadata.create_all(bind=engine)
+# ── Routes ────────────────────────────────────────────────────
 app.include_router(foods.router)
 
 
@@ -132,24 +152,35 @@ def home():
     return {"message": "Backend is running!"}
 
 
+@app.get("/livez")
+def liveness():
+    """Liveness: 200 whenever the process is up. Never touches the database,
+    so a DB outage cannot make the platform restart a healthy process."""
+    return {"status": "alive"}
+
+
 @app.get("/health")
 def health_check():
-    """
-    Health check endpoint that also pings the database.
-    Point a free cron/uptime service (e.g. UptimeRobot, cron-job.org)
-    at this URL every 5-10 minutes to prevent Render auto-sleep
-    and Aiven database auto-pause.
+    """Readiness: 200 when the database answers, 503 when it does not.
+
+    A plain `def` on purpose: FastAPI runs it in the threadpool, so the
+    blocking DB ping never stalls the event loop. Use /livez for the
+    platform health check; /health reports readiness (database
+    reachability) for monitoring and the frontend wake-up screen.
     """
     db = None
     try:
         db = SessionLocal()
         db.execute(text("SELECT 1"))
-        db_status = "connected"
-    except SQLAlchemyError:
-        logger.exception("Health check DB ping failed")
-        db_status = "disconnected"
+    except SQLAlchemyError as e:
+        # Log only the exception type: the message can contain the DSN.
+        logger.error("Health check DB ping failed (%s)", type(e).__name__)
+        return JSONResponse(
+            status_code=503,
+            content={"status": "unhealthy", "database": "unreachable"},
+        )
     finally:
         if db:
             db.close()
 
-    return {"status": "ok", "database": db_status}
+    return {"status": "ok", "database": "connected"}
