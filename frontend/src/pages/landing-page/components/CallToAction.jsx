@@ -136,11 +136,11 @@ const CallToAction = ({ onNavigate = () => { } }) => {
                     variant="outline"
                     size="lg"
                     onClick={() => onNavigate('/user-registration')}
-                    iconName="UserPlus"
+                    iconName="SlidersHorizontal"
                     iconPosition="left"
                     className="glass border-accent/30 hover:bg-accent/10 text-accent"
                   >
-                    Create Account
+                    Set up preferences
                   </Button>
 
                   <Button

@@ -1,4 +1,4 @@
-﻿name: Production CI/CD Pipeline
+name: Production CI/CD Pipeline
 
 on:
   push:
@@ -16,12 +16,12 @@ concurrency:
 
 jobs:
   # ==========================================
-  # JOB 1: FRONTEND � Build Check
+  # JOB 1: FRONTEND — Unit tests & Build
   # ==========================================
-  # Note: No TypeScript (plain JSX) and no test script in package.json,
-  # so we validate the frontend by running a production Vite build.
+  # No TypeScript (plain JSX) and no lint script yet, so the frontend is
+  # validated by its node:test unit tests and a production Vite build.
   frontend-ci:
-    name: Frontend � Lint & Build
+    name: Frontend — Test & Build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -39,6 +39,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Node's built-in test runner: no extra packages. The tests import
+      # ES-module .js files from src/; package.json has no "type": "module"
+      # (postcss.config.js is CommonJS), so this relies on Node's module
+      # syntax detection, enabled by default since Node 20.19 / 22.7.
+      - name: Unit tests (node:test)
+        run: node --test src/__tests__/*.test.mjs
+
       # Vite build acts as a compilation check (catches bad imports, missing
       # modules, etc.). A dummy VITE_API_BASE_URL prevents build-time errors
       # from the env var being undefined.
@@ -48,12 +55,12 @@ jobs:
           VITE_API_BASE_URL: https://placeholder.example.com
 
   # ==========================================
-  # JOB 2: BACKEND � Lint & Test
+  # JOB 2: BACKEND — Lint & Test
   # ==========================================
   # Tests use an in-memory SQLite DB (see backend/tests/conftest.py),
   # so no PostgreSQL service container is required here.
   backend-ci:
-    name: Backend � Lint & Pytest
+    name: Backend — Lint & Pytest
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -91,8 +98,11 @@ jobs:
   # ==========================================
   # JOB 3: DEPLOY (main branch push only)
   # ==========================================
+  # Backend only. The frontend is deployed by Vercel's own GitHub
+  # integration (production from main, previews for branches), not by CI.
+  # See docs/DEPLOYMENT.md.
   deploy:
-    name: Deploy � Render (Backend) + Vercel (Frontend)
+    name: Deploy — Render (Backend)
     needs: [ frontend-ci, backend-ci ]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
@@ -100,24 +110,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # -- Backend ? Render ----------------------------------
-      # Trigger a manual deploy via the Render Deploy Hook URL.
+      # -- Backend → Render ----------------------------------
+      # Trigger a deploy via the Render Deploy Hook URL.
       # Add RENDER_DEPLOY_HOOK_URL to your repo secrets:
-      #   Render dashboard ? your service ? Settings ? Deploy Hooks ? Create hook
+      #   Render dashboard → your service → Settings → Deploy Hooks → Create hook
       - name: Trigger Render backend deploy
         run: |
           curl --fail-with-body -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
-
-      # -- Frontend ? Vercel ---------------------------------
-      # Required secrets (set in repo Settings ? Secrets ? Actions):
-      #   VERCEL_TOKEN       � from vercel.com/account/tokens
-      #   VERCEL_ORG_ID      � from .vercel/project.json after `vercel link`
-      #   VERCEL_PROJECT_ID  � from .vercel/project.json after `vercel link`
-      - name: Deploy Frontend to Vercel (production)
-        uses: amondnet/vercel-action@v25
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: '--prod'
-          working-directory: ./frontend

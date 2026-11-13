@@ -8,7 +8,7 @@ const QuickActions = () => {
   const actions = [
     { label: "Find Food", icon: "Search", path: "/", color: "bg-emerald-500 text-black hover:bg-emerald-400" },
     { label: "Compare Two", icon: "GitCompare", path: "/food-comparison-tool", color: "bg-[#222] text-white border border-white/10 hover:bg-[#333]" },
-    { label: "Profile Settings", icon: "Settings", path: "/settings", color: "bg-[#222] text-white border border-white/10 hover:bg-[#333]" },
+    { label: "Set up preferences", icon: "SlidersHorizontal", path: "/user-registration", color: "bg-[#222] text-white border border-white/10 hover:bg-[#333]" },
   ];
 
   return (

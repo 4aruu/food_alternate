@@ -111,7 +111,7 @@ const FeatureHighlights = ({ onNavigate = () => {} }) => {
               key={feature?.id}
               variants={itemVariants}
               className="group cursor-pointer"
-              onClick={() => onNavigate('/user-dashboard')}
+              onClick={() => onNavigate('/dashboard')}
               whileHover={{ scale: 1.05 }}
               transition={{ duration: 0.3 }}
             >

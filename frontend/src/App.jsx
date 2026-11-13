@@ -11,18 +11,21 @@ import NotFound from './pages/NotFound';
 //  1. IMPORT YOUR NEW DASHBOARD COMPONENT
 import UserDashboard from './pages/user-dashboard';
 import UserRegistration from './pages/user-registration';
-import UserLogin from './pages/user-login';
 
 // Import Components
 import ErrorBoundary from './components/ErrorBoundary';
 import ScrollToTop from './components/ScrollToTop';
 import BackendWakeUp from './components/BackendWakeUp';
 
+// Only routes that need live data wait for the backend. Landing/marketing
+// routes render immediately (CLAUDE.md: public landing pages must not block
+// rendering on health checks).
+const withBackend = (page) => <BackendWakeUp>{page}</BackendWakeUp>;
+
 const App = () => {
   return (
     <Router>
       <ErrorBoundary>
-        <BackendWakeUp>
           <ScrollToTop />
           <Routes>
             {/* 1. Landing Page (Home) */}
@@ -30,27 +33,23 @@ const App = () => {
             <Route path="/landing-page" element={<Navigate to="/" replace />} />
 
             {/* 2. The Search Grid */}
-            <Route path="/food-search-results" element={<FoodSearchResults />} />
+            <Route path="/food-search-results" element={withBackend(<FoodSearchResults />)} />
 
             {/* 3. The Comparison Tool */}
-            <Route path="/food-comparison-tool" element={<FoodComparisonTool />} />
+            <Route path="/food-comparison-tool" element={withBackend(<FoodComparisonTool />)} />
 
             {/* 4. The Nutrition Detail Modal */}
-            <Route path="/nutrition-explorer-modal" element={<NutritionExplorerModal />} />
+            <Route path="/nutrition-explorer-modal" element={withBackend(<NutritionExplorerModal />)} />
 
             {/*  5. THE DASHBOARD ROUTE */}
             <Route path="/dashboard" element={<UserDashboard />} />
 
-            {/* 6. User Registration */}
+            {/* 6. Set up preferences (no account; nothing persisted) */}
             <Route path="/user-registration" element={<UserRegistration />} />
 
-            {/* 7. User Login */}
-            <Route path="/sign-in" element={<UserLogin />} />
-
-            {/* 8. 404 Fallback (Must be last) */}
+            {/* 7. 404 Fallback (Must be last) */}
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </BackendWakeUp>
       </ErrorBoundary>
     </Router>
   );

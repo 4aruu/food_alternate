@@ -5,12 +5,17 @@
 - Backend test & lint: activate the repo `.venv` (Windows: `.venv\Scripts\activate`, Linux/macOS: `source .venv/bin/activate`), then `cd backend && pytest && ruff check .`
 - Backend as CI runs it: `cd backend && pytest --cov=. --cov-report=term-missing -v`
 - Backend dev dependencies: `pip install -r backend/requirements-dev.txt` (includes `requirements.txt`; production installs `requirements.txt` only)
-- Note: the local `.venv` is out of sync with `requirements.txt` and should be rebuilt from `requirements-dev.txt`.
+- The local `.venv` is Python 3.11 built from `requirements-dev.txt` (same pins as CI); rebuild it whenever the pins change.
 - Frontend build: `cd frontend && npm run build` (no lint script yet; ESLint is a planned milestone)
+- Frontend unit tests: `cd frontend && node --test src/__tests__/*.test.mjs` (Node's built-in runner; no extra packages)
+
+## Deployment
+
+How production is configured (Render backend, Vercel frontend, Aiven DB, required env var names, health-check path, DB power-off runbook): see [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md). There is no `render.yaml`.
 
 ## Directory Map
 
-- `backend/main.py` — FastAPI app, middleware (security headers, body size, CORS, rate limiter), `/` and `/health`
+- `backend/main.py` — FastAPI app, startup lifespan, middleware (security headers, body size, CORS, rate limiter), `/`, `/livez` (liveness) and `/health` (readiness)
 - `backend/routers/foods.py` — `/foods` endpoints, alternatives engine, request validation, rate-limit key, foods cache
 - `backend/models.py` — SQLAlchemy models (Food, Nutrition, Allergen, Sustainability)
 - `backend/schemas.py` — Pydantic response schemas
@@ -20,6 +25,7 @@
 - `frontend/src/components/` — shared React components (`ui/` holds header, nav, inputs)
 - `frontend/src/pages/` — page-level views and their feature components
 - `frontend/src/utils/` — API client (`api.js`) and helpers
+- `frontend/src/__tests__/` — frontend unit tests (`*.test.mjs`, run with `node --test`)
 
 ## Active Project Constraints & Tier 1 Guardrails
 

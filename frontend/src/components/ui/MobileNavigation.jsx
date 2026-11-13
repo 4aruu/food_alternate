@@ -43,37 +43,13 @@ const MobileNavigation = ({
     return currentPath === path;
   };
 
-  const userMenuItems = user ? [
+  // There are no accounts: the only "get started" action is the no-account
+  // preferences flow.
+  const userMenuItems = [
     {
-      label: 'Profile Settings',
-      path: '/profile-settings',
-      icon: 'Settings'
-    },
-    {
-      label: 'Dietary Preferences',
-      path: '/dietary-preferences',
-      icon: 'Heart'
-    },
-    {
-      label: 'Saved Alternatives',
-      path: '/saved-alternatives',
-      icon: 'Bookmark'
-    },
-    {
-      label: 'Help & Support',
-      path: '/help',
-      icon: 'HelpCircle'
-    }
-  ] : [
-    {
-      label: 'Sign In',
-      path: '/sign-in',
-      icon: 'LogIn'
-    },
-    {
-      label: 'Create Account',
+      label: 'Set up preferences',
       path: '/user-registration',
-      icon: 'UserPlus'
+      icon: 'SlidersHorizontal'
     }
   ];
 

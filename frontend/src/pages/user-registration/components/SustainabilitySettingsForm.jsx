@@ -265,7 +265,7 @@ const SustainabilitySettingsForm = ({ formData = {}, onUpdate = () => {}, onComp
             iconPosition="right"
             className="min-w-32 bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90"
           >
-            Complete Registration
+            Finish setup
           </Button>
         </div>
       </form>
