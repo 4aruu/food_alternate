@@ -392,33 +392,21 @@ Get detailed information for a single food item by its ID.
 
 ---
 
-### `GET /foods/{food_id}/alternatives`
-The core feature — returns up to 5 smart alternative foods.
+### `POST /foods/{food_id}/alternatives`
+Alternatives from the food's category group. The allergen profile and the exploratory filters are sent in the request body; the rules are fail-closed, so a food is shown for an avoided allergen only when the data records that allergen as absent.
 
 **Rate limit:** 20 req/min
 
-| Parameter | Type | Required | Options | Description |
-|---|---|---|---|---|
-| `food_id` | path `int` | ✅ | — | ID of the food to find alternatives for |
-| `health_goal` | query `string` | ❌ | `diabetic`, `heart`, `weight`, `muscle`, `kidney`, `cholesterol` | Filter by medical goal |
-| `avoid` | query `string[]` | ❌ | `dairy`, `gluten`, `nuts`, `soy`, `eggs`, `shellfish`, `fish` | Allergens to strictly exclude |
+| Body field | Type | Required | Description |
+|---|---|---|---|
+| `allergen_profile_status` | `string` | ✅ | `restrictions` or `none_confirmed` |
+| `avoid` | `string[]` | for `restrictions` | allergen codes or aliases; must be empty for `none_confirmed` |
+| `health_goals` | `string[]` | ❌ | exploratory filter presets: `diabetic`, `heart`, `weight`, `muscle`, `kidney`, `cholesterol` |
+| `limit` | `int` | ❌ | 1–50, default 10 |
 
-**Health Goal Thresholds (ICMR/FSSAI validated):**
+**Response:** `200 OK` — an `AlternativesResponse` object with the results, the exclusion counts and the outcome.
 
-| Goal | Threshold |
-|---|---|
-| `diabetic` | Sugar < 5g, Fiber > 2g, sorted by ascending sugar |
-| `heart` | Sodium < 400mg, Fat < 10g |
-| `weight` | Calories < 400 kcal, high-protein sorted |
-| `muscle` | Protein > 10g, sorted descending |
-| `kidney` | Sodium < 300mg, Protein < 20g |
-| `cholesterol` | Fat < 8g, low sodium |
-
-**Fallback behaviour:**
-1. If strict thresholds return 0 results → relax numeric filters but keep allergen safety
-2. If still 0 results → broaden category scope (allergen safety always maintained)
-
-**Response:** `200 OK` — Array of `FoodSchema`
+The GET form of this endpoint is removed (405). The full contract — allergen status model, provenance, fixed texts, errors, examples and breaking changes — is in [`docs/api/food-discovery.md`](docs/api/food-discovery.md).
 
 ---
 

@@ -4,6 +4,7 @@ Covers: list all, search, get by ID, alternatives engine, explain-swap.
 """
 
 from conftest import seed_food
+from test_discovery_api import check_invariants
 
 # ═══════════════════════════════════════════════════════════
 # GET /foods/ — List All
@@ -162,8 +163,13 @@ def test_get_food_zero_id(client):
 
 
 # ═══════════════════════════════════════════════════════════
-# GET /foods/{id}/alternatives — Smart Alternatives Engine
+# POST /foods/{id}/alternatives — Food discovery
+# (migrated from the removed GET form; full coverage is in
+#  test_discovery_api.py)
 # ═══════════════════════════════════════════════════════════
+
+NO_FILTERING = {"allergen_profile_status": "none_confirmed"}
+
 
 def test_alternatives_returns_list(client, db):
     """Should return alternative foods in the same category."""
@@ -174,17 +180,19 @@ def test_alternatives_returns_list(client, db):
     seed_food(db, "Quinoa Bowl", category="Lunch",
               nutrition_score=90, calories=200, sugar=1)
 
-    response = client.get(f"/foods/{original.id}/alternatives")
+    response = client.post(f"/foods/{original.id}/alternatives", json=NO_FILTERING)
     assert response.status_code == 200
     data = response.json()
-    assert len(data) >= 1
+    check_invariants(data, limit=10)
+    assert data["eligible_total"] == 2
     # Should not include the original food
-    ids = [item["id"] for item in data]
+    ids = [item["food"]["id"] for item in data["results"]]
+    assert len(ids) == 2
     assert original.id not in ids
 
 
 def test_alternatives_with_health_goal(client, db):
-    """Diabetic goal should prefer low sugar, high fiber foods."""
+    """The diabetic preset keeps foods with sugar < 5 and fiber > 2 only."""
     original = seed_food(db, "Sweet Dessert", category="Dessert",
                          sugar=25, fiber=1)
     good = seed_food(db, "Fruit Salad", category="Dessert",
@@ -192,43 +200,55 @@ def test_alternatives_with_health_goal(client, db):
     bad = seed_food(db, "Cake", category="Dessert",
                     sugar=30, fiber=0)
 
-    response = client.get(f"/foods/{original.id}/alternatives?health_goal=diabetic")
+    response = client.post(
+        f"/foods/{original.id}/alternatives",
+        json={**NO_FILTERING, "health_goals": ["diabetic"]},
+    )
     assert response.status_code == 200
     data = response.json()
-    if len(data) > 0:
-        # Fruit Salad should appear (low sugar, high fiber)
-        names = [item["name"] for item in data]
-        assert "Fruit Salad" in names
-        # Cake should NOT appear with strict diabetic filters (sugar < 5)
-        assert "Cake" not in names
+    check_invariants(data, limit=10)
+    names = [item["food"]["name"] for item in data["results"]]
+    assert names == ["Fruit Salad"]
+    assert data["excluded"]["by_primary_reason"]["failed_filter"] == 1
 
 
 def test_alternatives_allergen_exclusion(client, db):
-    """Allergen filters should strictly exclude matching foods."""
+    """An avoided allergen excludes every food it cannot be verified absent from."""
     original = seed_food(db, "Regular Pasta", category="Lunch")
     seed_food(db, "Gluten Pasta", category="Lunch", gluten=True)
-    safe = seed_food(db, "Rice Noodles", category="Lunch", gluten=False)
+    unverified = seed_food(db, "Rice Noodles", category="Lunch", gluten=False)
 
-    response = client.get(f"/foods/{original.id}/alternatives?avoid=gluten")
+    response = client.post(
+        f"/foods/{original.id}/alternatives",
+        json={"allergen_profile_status": "restrictions", "avoid": ["gluten"]},
+    )
     assert response.status_code == 200
     data = response.json()
-    names = [item["name"] for item in data]
-    assert "Gluten Pasta" not in names
-    if len(data) > 0:
-        assert "Rice Noodles" in names
+    check_invariants(data, limit=10)
+    # A legacy False is unknown, not absent: nothing can be verified.
+    assert data["results"] == []
+    counts = data["excluded"]["by_primary_reason"]
+    assert counts["allergen_ingredient_possible"] == 1
+    assert counts["allergen_ingredient_unknown"] == 1
+    assert data["outcome"]["code"] == "no_verified_alternatives"
 
 
 def test_alternatives_invalid_health_goal(client, db):
     """Invalid health goal should return 400."""
     food = seed_food(db, "Test Food", category="Lunch")
-    response = client.get(f"/foods/{food.id}/alternatives?health_goal=invalid")
+    response = client.post(
+        f"/foods/{food.id}/alternatives",
+        json={**NO_FILTERING, "health_goals": ["invalid"]},
+    )
     assert response.status_code == 400
+    assert response.json()["error_code"] == "UNKNOWN_HEALTH_GOAL"
 
 
 def test_alternatives_not_found(client):
     """Alternatives for non-existent food should return 404."""
-    response = client.get("/foods/99999/alternatives")
+    response = client.post("/foods/99999/alternatives", json=NO_FILTERING)
     assert response.status_code == 404
+    assert response.json()["error_code"] == "FOOD_NOT_FOUND"
 
 
 # ═══════════════════════════════════════════════════════════
@@ -236,21 +256,20 @@ def test_alternatives_not_found(client):
 # ═══════════════════════════════════════════════════════════
 
 def test_health_goals_returns_list(client):
-    """Should return all 6 health goals with keys and descriptions."""
+    """Should return all 6 presets with keys, labels and filters."""
     response = client.get("/foods/meta/health-goals")
     assert response.status_code == 200
     data = response.json()
-    assert "goals" in data
-    goals = data["goals"]
-    assert len(goals) == 6
+    assert "goals" not in data
+    presets = data["presets"]
+    assert len(presets) == 6
 
-    keys = {g["key"] for g in goals}
+    keys = {p["key"] for p in presets}
     assert keys == {"diabetic", "heart", "weight", "muscle", "kidney", "cholesterol"}
 
-    # Each goal should have a description
-    for goal in goals:
-        assert "description" in goal
-        assert len(goal["description"]) > 10
+    for preset in presets:
+        assert preset["label"]
+        assert len(preset["filters"]) >= 1
 
 
 # ═══════════════════════════════════════════════════════════

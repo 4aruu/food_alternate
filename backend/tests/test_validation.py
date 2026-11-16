@@ -4,6 +4,7 @@ These verify the API rejects malformed/malicious input correctly.
 """
 
 from conftest import seed_food
+from test_discovery_api import check_invariants
 
 # ═══════════════════════════════════════════════════════════
 # Search Input Validation
@@ -49,24 +50,33 @@ def test_food_id_float_rejected(client):
 
 def test_alternatives_negative_id(client):
     """Negative ID for alternatives should return 400."""
-    response = client.get("/foods/-5/alternatives")
+    response = client.post(
+        "/foods/-5/alternatives", json={"allergen_profile_status": "none_confirmed"}
+    )
     assert response.status_code == 400
+    assert response.json()["error_code"] == "INVALID_FOOD_ID"
 
 
 # ═══════════════════════════════════════════════════════════
 # Allergen Input Validation
 # ═══════════════════════════════════════════════════════════
 
-def test_unknown_allergen_is_ignored(client, db):
-    """Unknown allergen names should be silently ignored, not crash."""
+def test_unknown_allergen_is_rejected(client, db):
+    """Unknown allergen names are rejected, never silently dropped."""
     food = seed_food(db, "Test Food", category="Lunch")
     seed_food(db, "Alt Food", category="Lunch")
 
-    response = client.get(
-        f"/foods/{food.id}/alternatives?avoid=unknown_allergen&avoid=dairy"
+    response = client.post(
+        f"/foods/{food.id}/alternatives",
+        json={
+            "allergen_profile_status": "restrictions",
+            "avoid": ["unknown_allergen", "dairy"],
+        },
     )
-    assert response.status_code == 200
-    # Should still work — unknown allergens logged and skipped
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error_code"] == "UNKNOWN_ALLERGEN"
+    assert "'unknown_allergen'" in body["detail"]
 
 
 def test_multiple_valid_allergens(client, db):
@@ -74,16 +84,24 @@ def test_multiple_valid_allergens(client, db):
     food = seed_food(db, "Original", category="Lunch")
     seed_food(db, "Has Dairy", category="Lunch", dairy=True, nuts=False)
     seed_food(db, "Has Nuts", category="Lunch", dairy=False, nuts=True)
-    safe = seed_food(db, "Safe Food", category="Lunch", dairy=False, nuts=False)
+    unverified = seed_food(db, "Unflagged Food", category="Lunch", dairy=False, nuts=False)
 
-    response = client.get(
-        f"/foods/{food.id}/alternatives?avoid=dairy&avoid=nuts"
+    response = client.post(
+        f"/foods/{food.id}/alternatives",
+        json={"allergen_profile_status": "restrictions", "avoid": ["dairy", "nuts"]},
     )
     assert response.status_code == 200
     data = response.json()
-    names = [item["name"] for item in data]
+    check_invariants(data, limit=10)
+    assert data["applied"]["avoid"] == ["milk", "peanuts", "tree_nuts"]
+    names = [item["food"]["name"] for item in data["results"]]
     assert "Has Dairy" not in names
     assert "Has Nuts" not in names
+    # An unflagged food is unknown, not absent, so it is excluded too.
+    assert names == []
+    counts = data["excluded"]["by_primary_reason"]
+    assert counts["allergen_ingredient_possible"] == 2
+    assert counts["allergen_ingredient_unknown"] == 1
 
 
 # ═══════════════════════════════════════════════════════════
@@ -96,8 +114,13 @@ def test_all_valid_health_goals_accepted(client, db):
     seed_food(db, "Alt 1", category="Lunch")
 
     for goal in ["diabetic", "heart", "weight", "muscle", "kidney", "cholesterol"]:
-        response = client.get(f"/foods/{food.id}/alternatives?health_goal={goal}")
+        response = client.post(
+            f"/foods/{food.id}/alternatives",
+            json={"allergen_profile_status": "none_confirmed", "health_goals": [goal]},
+        )
         assert response.status_code == 200, f"Health goal '{goal}' failed"
+        check_invariants(response.json(), limit=10)
+        assert response.json()["applied"]["health_goals"] == [goal]
 
 
 def test_health_goal_case_insensitive(client, db):
@@ -105,8 +128,13 @@ def test_health_goal_case_insensitive(client, db):
     food = seed_food(db, "Test Food", category="Lunch")
     seed_food(db, "Alt 1", category="Lunch")
 
-    response = client.get(f"/foods/{food.id}/alternatives?health_goal=DIABETIC")
+    response = client.post(
+        f"/foods/{food.id}/alternatives",
+        json={"allergen_profile_status": "none_confirmed", "health_goals": ["DIABETIC"]},
+    )
     assert response.status_code == 200
+    check_invariants(response.json(), limit=10)
+    assert response.json()["applied"]["health_goals"] == ["diabetic"]
 
 
 # ═══════════════════════════════════════════════════════════

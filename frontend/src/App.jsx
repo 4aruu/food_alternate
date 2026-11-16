@@ -16,6 +16,7 @@ import UserRegistration from './pages/user-registration';
 import ErrorBoundary from './components/ErrorBoundary';
 import ScrollToTop from './components/ScrollToTop';
 import BackendWakeUp from './components/BackendWakeUp';
+import { AllergenProfileProvider } from './context/AllergenProfileContext';
 
 // Only routes that need live data wait for the backend. Landing/marketing
 // routes render immediately (CLAUDE.md: public landing pages must not block
@@ -26,6 +27,8 @@ const App = () => {
   return (
     <Router>
       <ErrorBoundary>
+        {/* Allergen profile for this visit; in memory only, never persisted. */}
+        <AllergenProfileProvider>
           <ScrollToTop />
           <Routes>
             {/* 1. Landing Page (Home) */}
@@ -50,6 +53,7 @@ const App = () => {
             {/* 7. 404 Fallback (Must be last) */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+        </AllergenProfileProvider>
       </ErrorBoundary>
     </Router>
   );

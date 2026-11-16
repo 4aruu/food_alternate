@@ -4,98 +4,155 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Icon from '../../components/AppIcon';
 import Header from '../../components/ui/Header';
 import { addToHistory } from '../../utils/history';
+import ConnectionError from '../../components/ConnectionError';
 
-import { getFoods } from '../../utils/api';
+import { getAlternatives, getFoods } from '../../utils/api';
+import { useAllergenProfile } from '../../context/AllergenProfileContext';
+import { isProfileConfigured } from '../../utils/allergenProfile';
+import { allergenDisplay, displayStateLabel, legacyAllergenDisplay } from '../../utils/allergenStatus';
+import { formatNutrient, nutrientBarPercent } from '../../utils/nutrition';
+import {
+  ALLERGEN_CODES,
+  ALLERGEN_LABELS,
+  LEGACY_FLAG_LABEL,
+  LEGACY_UNVERIFIED_NOTICE,
+  NONE_CONFIRMED_HELPER,
+  NONE_CONFIRMED_LABEL,
+  PREPARATION_WARNING,
+} from '../../constants/allergens';
+import {
+  DISCLAIMER,
+  HEALTH_GOAL_KEYS,
+  HEALTH_GOAL_PRESETS,
+  NUTRITION_BASIS_NOTICE,
+  NUTRITION_INCOMPLETE_TEXT,
+} from '../../constants/nutritionFilters';
 
-// --- 🧠 SMART ENGINE: CONTEXT & RELATABILITY LOGIC ---
-const getSmartSwaps = (currentFood, allFoods, filterMode) => {
-  if (!currentFood || !allFoods || !allFoods.length) return [];
+// Alternatives come from POST /foods/{id}/alternatives. The server decides
+// eligibility and order; this page shows its results exactly as returned.
+const RESULT_LIMIT = 10;
 
-  // 1. Remove the item itself
-  let candidates = allFoods.filter(f => f.id !== currentFood.id);
+// Shown once above the results instead of on every result card.
+const LIST_LEVEL_UNCERTAINTY = new Set(['preparation_dependent', 'nutrition_unstandardized']);
 
-  // 2. 🛡️ RELATABILITY FILTER
-  // Define what counts as a "Meal" vs "Non-Meal"
-  const MEAL_CATEGORIES = [
-      'Breakfast', 'Lunch', 'Dinner', 'Main Course',
-      'Arabic', 'Chinese', 'Indian', 'Fast Food', 'Seafood', 'Meat Alternative'
-  ];
-  // Things that should NEVER be swapped for a Meal
-  const SIDE_CATEGORIES = ['Drink', 'Dessert', 'Sweetener', 'Condiment', 'Side Dish', 'Snack'];
-
-  // LOGIC:
-  if (MEAL_CATEGORIES.includes(currentFood.category)) {
-      // If viewing a Meal (e.g., Puttu), HIDE Drinks, Condiments, etc.
-      candidates = candidates.filter(f => !SIDE_CATEGORIES.includes(f.category));
-  } else if (currentFood.category === 'Drink') {
-      // If viewing a Drink, ONLY show other Drinks
-      candidates = candidates.filter(f => f.category === 'Drink');
-  } else if (currentFood.category === 'Dessert') {
-      // If viewing Dessert, ONLY show Desserts or Sweet Snacks
-      candidates = candidates.filter(f => f.category === 'Dessert' || f.category === 'Snack');
-  }
-
-  // 3. Apply Health Goals (Strict Math)
-  switch (filterMode) {
-    case 'Diabetic':
-      candidates = candidates.filter(f =>
-        (f.nutrition?.sugar || 0) < 5 ||
-        (f.nutrition?.fiber || 0) > 3 ||
-        (f.nutrition?.carbohydrates || 0) < 30
-      );
-      break;
-
-    case 'Heart Safe':
-      candidates = candidates.filter(f =>
-        (f.nutrition?.fat || 0) < 10 &&
-        (f.nutrition?.sodium || 0) < 400
-      );
-      break;
-
-    case 'Weight Loss':
-      const currentCals = currentFood.nutrition?.calories || 500;
-      candidates = candidates.filter(f =>
-        (f.nutrition?.calories || 0) < (currentCals * 0.85) ||
-        (f.nutrition?.calories || 0) < 200
-      );
-      break;
-
-    default: // 'All' - Show generally healthier items
-      candidates = candidates.filter(f => f.nutrition_score > (currentFood.nutrition_score || 0));
-      break;
-  }
-
-  // 4. SORTING
-  candidates.sort((a, b) => {
-    // Priority 1: Exact Category Match (Breakfast vs Breakfast)
-    const aSameCat = a.category === currentFood.category ? 1 : 0;
-    const bSameCat = b.category === currentFood.category ? 1 : 0;
-    if (aSameCat !== bSameCat) return bSameCat - aSameCat;
-
-    // Priority 2: Nutrition Score
-    return b.nutrition_score - a.nutrition_score;
-  });
-
-  // 5. Return Top 10 matches (The Fix)
-  return candidates.slice(0, 10);
-};
+const TABS = [
+  { id: 'swaps', label: 'Swaps' },
+  { id: 'nutrition', label: 'Nutrition' },
+  { id: 'allergens', label: 'Allergens' },
+];
 
 // --- VISUAL COMPONENT: METRIC BAR ---
-const MetricBar = ({ label, value, max, color, unit }) => (
-  <div className="mb-3">
-    <div className="flex justify-between text-xs mb-1 text-gray-400">
-      <span>{label}</span>
-      <span>{value}{unit}</span>
+// A missing or invalid value shows "Not available" and draws no bar.
+const MetricBar = ({ label, value, max, color, unit }) => {
+  const percent = nutrientBarPercent(value, max);
+  return (
+    <div className="mb-3">
+      <div className="flex justify-between text-xs mb-1 text-gray-400">
+        <span>{label}</span>
+        <span>{formatNutrient(value, unit)}</span>
+      </div>
+      <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+        {percent !== null && (
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${percent}%` }}
+            className={`h-full bg-gradient-to-r ${color}`}
+          />
+        )}
+      </div>
     </div>
-    <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
-      <motion.div
-        initial={{ width: 0 }}
-        animate={{ width: `${Math.min((value / max) * 100, 100)}%` }}
-        className={`h-full bg-gradient-to-r ${color}`}
-      />
+  );
+};
+
+// --- ALLERGEN PROFILE STEP ---
+const ProfileStep = ({ profile, dispatch }) => (
+  <div className="bg-[#111] p-5 rounded-2xl border border-white/10 space-y-4">
+    <div>
+      <h3 className="font-bold text-white">Allergens to avoid</h3>
+      <p className="text-xs text-gray-400 mt-1">
+        Choose the allergens to avoid before alternatives are shown.
+      </p>
+    </div>
+    <div className="flex flex-wrap gap-2">
+      {ALLERGEN_CODES.map((code) => {
+        const selected = profile.status === 'restrictions' && profile.avoid.includes(code);
+        return (
+          <button
+            key={code}
+            type="button"
+            aria-pressed={selected}
+            onClick={() => dispatch({ type: 'toggle', code })}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+              selected
+                ? 'bg-white text-black border-white'
+                : 'text-gray-300 border-white/15 hover:border-white/40'
+            }`}
+          >
+            {ALLERGEN_LABELS[code]}
+          </button>
+        );
+      })}
+    </div>
+    <div className="pt-3 border-t border-white/10">
+      <button
+        type="button"
+        aria-pressed={profile.status === 'none_confirmed'}
+        onClick={() => dispatch({ type: 'confirm_none' })}
+        className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+          profile.status === 'none_confirmed'
+            ? 'bg-white text-black border-white'
+            : 'text-gray-300 border-white/15 hover:border-white/40'
+        }`}
+      >
+        {NONE_CONFIRMED_LABEL}
+      </button>
+      <p className="text-xs text-gray-500 mt-2">{NONE_CONFIRMED_HELPER}</p>
     </div>
   </div>
 );
+
+// --- ONE RESULT, AS RETURNED BY THE SERVER ---
+const ResultCard = ({ result, onOpen }) => {
+  const { food } = result;
+  const stateLabel = displayStateLabel(allergenDisplay(food.allergen_status).state);
+  const entries = result.uncertainty.filter((entry) => !LIST_LEVEL_UNCERTAINTY.has(entry.code));
+  return (
+    <div
+      className="p-3 bg-[#111] border border-white/5 rounded-2xl hover:border-white/20 transition-all cursor-pointer"
+      onClick={() => onOpen(food)}
+    >
+      <div className="flex items-center gap-4">
+        <img src={food.image} className="w-16 h-16 rounded-xl object-cover bg-gray-800" alt="" />
+        <div className="flex-1">
+          <h4 className="font-bold text-white">{food.name}</h4>
+          <p className="text-xs text-gray-500">
+            {food.category} • {formatNutrient(food.nutrition?.calories, ' cal')}
+          </p>
+        </div>
+        <Icon name="ArrowRight" size={16} className="text-gray-400" />
+      </div>
+      <ul className="mt-3 space-y-1 text-xs text-gray-300">
+        {result.reasons.map((reason, i) => (
+          <li key={`reason-${i}`}>{reason.text}</li>
+        ))}
+      </ul>
+      <ul className="mt-2 space-y-1 text-xs text-gray-500">
+        {stateLabel && <li>{stateLabel}</li>}
+        {entries.map((entry) => (
+          <li key={entry.code}>
+            {entry.text}
+            {/* The "unverified" texts say "these allergens"; name them. */}
+            {entry.code.endsWith('_unverified') && Array.isArray(entry.allergens) && (
+              <span className="block text-gray-600">
+                {entry.allergens.map((code) => ALLERGEN_LABELS[code]).join(', ')}
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
 
 const NutritionExplorerModal = () => {
   const navigate = useNavigate();
@@ -104,25 +161,64 @@ const NutritionExplorerModal = () => {
 
   const [foodItem, setFoodItem] = useState(passedFood || null);
   const [activeTab, setActiveTab] = useState("swaps");
-  const [activeNeed, setActiveNeed] = useState('All');
+
+  const { profile, dispatch } = useAllergenProfile();
+  const profileConfigured = isProfileConfigured(profile);
+  const [healthGoals, setHealthGoals] = useState([]);
 
   const [allFoods, setAllFoods] = useState([]);
-  const [swaps, setSwaps] = useState([]);
+  const [alternatives, setAlternatives] = useState(null);
+  const [altStatus, setAltStatus] = useState('idle'); // idle | loading | ready | error
+  const [retryCount, setRetryCount] = useState(0);
 
-  // 1. Fetch Database (shared, deduplicated fetch — module-level cache)
+  // 1. Full food list, used only to open a result with all its details
+  //    (shared, deduplicated fetch — module-level cache)
   useEffect(() => {
     getFoods()
       .then(data => setAllFoods(data))
       .catch(err => console.error("Failed to load foods", err));
   }, []);
 
-  // 2. Recalculate Swaps
+  // 2. Ask the server for alternatives. Nothing is requested until the
+  //    allergen profile is configured.
+  const foodId = foodItem?.id;
   useEffect(() => {
-    if (foodItem && allFoods.length > 0) {
-        const results = getSmartSwaps(foodItem, allFoods, activeNeed);
-        setSwaps(results);
+    if (foodId === undefined || !profileConfigured) {
+      setAlternatives(null);
+      setAltStatus('idle');
+      return undefined;
     }
-  }, [foodItem, allFoods, activeNeed]);
+    let cancelled = false;
+    setAltStatus('loading');
+    getAlternatives(foodId, profile, healthGoals, RESULT_LIMIT)
+      .then((data) => {
+        if (cancelled) return;
+        setAlternatives(data);
+        setAltStatus('ready');
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error("Failed to load alternatives", err?.status);
+        setAlternatives(null);
+        setAltStatus('error');
+      });
+    return () => { cancelled = true; };
+  }, [foodId, profile, profileConfigured, healthGoals, retryCount]);
+
+  const toggleHealthGoal = (key) => {
+    setHealthGoals((current) => HEALTH_GOAL_KEYS.filter((k) =>
+      k === key ? !current.includes(k) : current.includes(k)
+    ));
+  };
+
+  // Open a result: prefer the full record from the foods list.
+  const openFood = (food) => {
+    const full = allFoods.find((f) => f.id === food.id) || food;
+    addToHistory(full);
+    setFoodItem(full);
+  };
+
+  const legacyAllergens = legacyAllergenDisplay(foodItem?.allergens);
 
   // 3. Update view if new food selected
   useEffect(() => {
@@ -140,15 +236,15 @@ const NutritionExplorerModal = () => {
               <Icon name="ArrowLeft" size={20} /> Back
           </button>
           <div className="flex bg-[#111] rounded-full p-1 border border-white/10">
-             {['swaps', 'nutrition', 'safety'].map(tab => (
+             {TABS.map(tab => (
                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`text-[11px] sm:text-xs font-bold px-3 sm:px-5 py-2 rounded-full capitalize transition-all ${
-                        activeTab === tab ? 'bg-white text-black' : 'text-gray-500 hover:text-white'
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`text-[11px] sm:text-xs font-bold px-3 sm:px-5 py-2 rounded-full transition-all ${
+                        activeTab === tab.id ? 'bg-white text-black' : 'text-gray-500 hover:text-white'
                     }`}
                  >
-                    {tab}
+                    {tab.label}
                  </button>
              ))}
           </div>
@@ -166,7 +262,7 @@ const NutritionExplorerModal = () => {
                     <img src={foodItem.image} alt={foodItem.name} className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent flex flex-col justify-end p-6">
                         <h1 className="text-3xl font-bold leading-tight mb-1">{foodItem.name}</h1>
-                        <p className="text-gray-400">{foodItem.category} • {foodItem.nutrition?.calories} cal</p>
+                        <p className="text-gray-400">{foodItem.category} • {formatNutrient(foodItem.nutrition?.calories, ' cal')}</p>
                     </div>
                 </motion.div>
 
@@ -190,68 +286,67 @@ const NutritionExplorerModal = () => {
                 {activeTab === 'swaps' && (
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
 
-                        <div className="bg-[#111] p-1.5 rounded-xl border border-white/10 inline-flex w-full overflow-x-auto scrollbar-hide">
-                            {['All', 'Diabetic', 'Heart Safe', 'Weight Loss'].map(mode => (
+                        {/* 1. Allergen profile (always editable; required before any request) */}
+                        <ProfileStep profile={profile} dispatch={dispatch} />
+
+                        {/* 2. Exploratory filters (sent as health_goals) */}
+                        <div className="bg-[#111] p-1.5 rounded-xl border border-white/10 flex flex-wrap gap-1">
+                            {HEALTH_GOAL_PRESETS.map(preset => (
                                 <button
-                                    key={mode}
-                                    onClick={() => setActiveNeed(mode)}
-                                    className={`flex-1 min-w-[100px] py-2.5 rounded-lg text-xs font-bold transition-all ${
-                                        activeNeed === mode
-                                        ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20'
+                                    key={preset.key}
+                                    type="button"
+                                    aria-pressed={healthGoals.includes(preset.key)}
+                                    onClick={() => toggleHealthGoal(preset.key)}
+                                    className={`flex-1 min-w-[120px] py-2.5 px-2 rounded-lg text-xs font-bold transition-all ${
+                                        healthGoals.includes(preset.key)
+                                        ? 'bg-white text-black'
                                         : 'text-gray-400 hover:text-white hover:bg-white/5'
                                     }`}
                                 >
-                                    {mode}
+                                    {preset.label}
                                 </button>
                             ))}
                         </div>
 
-                        <div className="space-y-3">
-                            {swaps.length > 0 ? (
-                                swaps.map((swap) => (
-                                    <div key={swap.id} className="flex items-center gap-4 p-3 bg-[#111] border border-white/5 rounded-2xl hover:border-emerald-500/40 hover:bg-white/5 transition-all group cursor-pointer"
-                                         onClick={() => { addToHistory(swap); setFoodItem(swap); }}
-                                    >
-                                        <img src={swap.image} className="w-16 h-16 rounded-xl object-cover bg-gray-800" alt="" />
+                        {/* 3. Results exactly as returned by the server */}
+                        {profileConfigured && (
+                            <div className="space-y-3">
+                                {altStatus === 'loading' && (
+                                    <div className="py-10 text-center text-gray-500 text-sm">Loading alternatives…</div>
+                                )}
 
-                                        <div className="flex-1">
-                                            <div className="flex justify-between items-center mb-1">
-                                                <h4 className="font-bold text-white group-hover:text-emerald-400 transition-colors">{swap.name}</h4>
-                                                <span className="text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-md">
-                                                    {swap.nutrition_score}
-                                                </span>
+                                {altStatus === 'error' && (
+                                    <ConnectionError
+                                        compact
+                                        message="Couldn't load alternatives. The server may be waking up."
+                                        onRetry={() => setRetryCount((n) => n + 1)}
+                                    />
+                                )}
+
+                                {altStatus === 'ready' && alternatives && (
+                                    <>
+                                        <p className="text-sm font-bold text-white">{alternatives.outcome.text}</p>
+
+                                        {alternatives.results.length > 0 && (
+                                            <div className="p-3 rounded-xl border border-white/10 bg-white/5 space-y-2 text-xs text-gray-400">
+                                                <p>{PREPARATION_WARNING}</p>
+                                                <p>{NUTRITION_BASIS_NOTICE}</p>
                                             </div>
+                                        )}
 
-                                            <div className="flex items-center gap-2">
-                                                {swap.category === foodItem.category && (
-                                                    <span className="text-[10px] font-bold text-gray-400 bg-white/5 px-1.5 py-0.5 rounded border border-white/5">
-                                                        Same Category
-                                                    </span>
-                                                )}
-                                                {activeNeed !== 'All' && (
-                                                    <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/10">
-                                                        {activeNeed} Friendly
-                                                    </span>
-                                                )}
-                                                <span className="text-xs text-gray-500 ml-auto">{swap.nutrition?.calories} cal</span>
-                                            </div>
-                                        </div>
+                                        {alternatives.results.map((result) => (
+                                            <ResultCard key={result.food.id} result={result} onOpen={openFood} />
+                                        ))}
 
-                                        <button className="w-8 h-8 flex items-center justify-center rounded-full border border-white/10 text-gray-400 group-hover:bg-emerald-500 group-hover:text-black group-hover:border-emerald-500 transition-all">
-                                            <Icon name="ArrowRight" size={16} />
-                                        </button>
-                                    </div>
-                                ))
-                            ) : (
-                                <div className="py-16 text-center text-gray-500 border border-dashed border-white/10 rounded-2xl">
-                                    <Icon name="Search" size={32} className="mx-auto mb-3 opacity-30" />
-                                    <p className="text-sm">No <strong>{activeNeed}</strong> matches found in this category.</p>
-                                    <button onClick={() => setActiveNeed('All')} className="text-emerald-500 text-xs font-bold mt-3 hover:underline">
-                                        View all options
-                                    </button>
-                                </div>
-                            )}
-                        </div>
+                                        <p className="text-[11px] text-gray-500 pt-2">{alternatives.disclaimer}</p>
+                                    </>
+                                )}
+                            </div>
+                        )}
+
+                        {!profileConfigured && (
+                            <p className="text-[11px] text-gray-500">{DISCLAIMER}</p>
+                        )}
                     </motion.div>
                 )}
 
@@ -259,7 +354,7 @@ const NutritionExplorerModal = () => {
                 {activeTab === 'nutrition' && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-[#111] p-6 rounded-3xl border border-white/10">
                         <h3 className="text-lg font-bold mb-6">Nutritional Profile</h3>
-                        {foodItem.nutrition && (
+                        {foodItem.nutrition ? (
                             <>
                                 <MetricBar label="Protein" value={foodItem.nutrition.protein} max={30} unit="g" color="from-emerald-500 to-teal-400" />
                                 <MetricBar label="Carbohydrates" value={foodItem.nutrition.carbohydrates} max={60} unit="g" color="from-blue-500 to-indigo-400" />
@@ -268,37 +363,39 @@ const NutritionExplorerModal = () => {
                                 <div className="mt-6 pt-6 border-t border-white/10 grid grid-cols-2 gap-4">
                                     <div>
                                         <span className="text-gray-500 text-xs uppercase font-bold tracking-wider">Calories</span>
-                                        <p className="text-3xl font-bold text-white mt-1">{foodItem.nutrition.calories}</p>
+                                        <p className="text-3xl font-bold text-white mt-1">{formatNutrient(foodItem.nutrition.calories)}</p>
                                     </div>
                                     <div>
                                         <span className="text-gray-500 text-xs uppercase font-bold tracking-wider">Sodium</span>
-                                        <p className="text-3xl font-bold text-white mt-1">{foodItem.nutrition.sodium}<span className="text-lg text-gray-500">mg</span></p>
+                                        <p className="text-3xl font-bold text-white mt-1">{formatNutrient(foodItem.nutrition.sodium, ' mg')}</p>
                                     </div>
                                 </div>
                             </>
+                        ) : (
+                            <p className="text-sm text-gray-400">{NUTRITION_INCOMPLETE_TEXT}</p>
                         )}
                     </motion.div>
                 )}
 
-                {/* --- TAB: SAFETY --- */}
-                {activeTab === 'safety' && (
+                {/* --- TAB: ALLERGENS --- */}
+                {/* Legacy booleans: only a `true` is shown, as possible; a
+                    false, null or missing flag is unknown and gets no entry. */}
+                {activeTab === 'allergens' && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-                        <div className="bg-[#111] p-6 rounded-3xl border border-white/10">
-                            <h3 className="text-lg font-bold mb-4">Allergen Safety</h3>
-                            <div className="flex flex-wrap gap-2">
-                                {foodItem.allergens && Object.entries(foodItem.allergens).map(([key, value]) => (
-                                    value ? (
-                                        <span key={key} className="px-4 py-2 bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg text-sm font-bold capitalize flex items-center gap-2">
-                                            <Icon name="AlertTriangle" size={16} /> Contains {key}
-                                        </span>
-                                    ) : null
-                                ))}
-                                {(!foodItem.allergens || Object.values(foodItem.allergens).every(v => !v)) && (
-                                    <span className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-lg text-sm font-bold flex items-center gap-2">
-                                        <Icon name="CheckCircle" size={16} /> Safe / No Major Allergens
-                                    </span>
-                                )}
-                            </div>
+                        <div className="bg-[#111] p-6 rounded-3xl border border-white/10 space-y-4">
+                            <h3 className="text-lg font-bold">Allergen information</h3>
+                            {legacyAllergens.labels.length > 0 && (
+                                <ul className="flex flex-wrap gap-2">
+                                    {legacyAllergens.labels.map((label) => (
+                                        <li key={label} className="px-4 py-2 bg-amber-500/10 border border-amber-500/30 text-amber-300 rounded-lg text-sm flex items-center gap-2">
+                                            <Icon name="AlertTriangle" size={16} />
+                                            <span><strong>{label}</strong>: {LEGACY_FLAG_LABEL}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                            <p className="text-sm text-gray-300">{LEGACY_UNVERIFIED_NOTICE}</p>
+                            <p className="text-sm text-gray-400">{PREPARATION_WARNING}</p>
                         </div>
                     </motion.div>
                 )}

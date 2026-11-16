@@ -6,6 +6,8 @@ import Icon from '../../components/AppIcon';
 import ConnectionError from '../../components/ConnectionError';
 
 import { getFoods } from '../../utils/api';
+import { formatFoodNutrient, formatNutrient } from '../../utils/nutrition';
+import { NUTRITION_BASIS_NOTICE } from '../../constants/nutritionFilters';
 
 const FoodComparisonTool = () => {
     const navigate = useNavigate();
@@ -70,20 +72,6 @@ const FoodComparisonTool = () => {
         setComparedFoods(comparedFoods.filter(f => f.id !== foodId));
     };
 
-    // Helper to find the "best" value for highlighting
-    const getBestStyle = (metric, val, foods) => {
-        if (!foods.length || val === undefined) return "text-white";
-        const cleanVal = parseFloat(val);
-        if (isNaN(cleanVal)) return "text-white";
-
-        const values = foods.map(f => parseFloat(f.nutrition?.[metric] || 0));
-
-        const isLowGood = ['calories', 'fat', 'sodium', 'sugar'].includes(metric);
-        const bestVal = isLowGood ? Math.min(...values) : Math.max(...values);
-
-        return cleanVal === bestVal ? "text-emerald-400 font-bold" : "text-white";
-    };
-
     return (
         <div className="min-h-screen bg-black text-white font-sans selection:bg-emerald-500/30">
             <Header onNavigate={(path) => navigate(path)} />
@@ -96,7 +84,7 @@ const FoodComparisonTool = () => {
                         <h1 className="text-2xl sm:text-4xl font-bold mb-1 sm:mb-2">
                             Comparison <span className="text-emerald-400">Lab</span>
                         </h1>
-                        <p className="text-sm text-gray-400">Compare nutrition, sustainability, and safety.</p>
+                        <p className="text-sm text-gray-400">Compare nutrition and sustainability.</p>
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -193,6 +181,11 @@ const FoodComparisonTool = () => {
                             <Icon name="Activity" size={14} /> Nutrition
                         </div>
 
+                        {/* Values from two or more foods are shown side by side */}
+                        {comparedFoods.length >= 2 && (
+                            <p className="mb-4 text-xs text-gray-400 normal-case">{NUTRITION_BASIS_NOTICE}</p>
+                        )}
+
                         {[
                             { label: 'Calories', key: 'calories', unit: ' kcal' },
                             { label: 'Protein', key: 'protein', unit: 'g' },
@@ -207,13 +200,11 @@ const FoodComparisonTool = () => {
                                     const food = comparedFoods[i];
                                     if (!food) return <div key={i}></div>;
 
-                                    const val = food.nutrition?.[metric.key] || 0;
-                                    const style = getBestStyle(metric.key, val, comparedFoods);
-
+                                    // No value is marked as preferable: the stored values
+                                    // have no common measurement basis.
                                     return (
-                                        <div key={i} className={`text-center text-sm sm:text-lg font-mono ${style}`}>
-                                            {val}{metric.unit}
-                                            {style.includes('emerald') && <span className="block w-1.5 h-1.5 bg-emerald-500 rounded-full mx-auto mt-1" />}
+                                        <div key={i} className="text-center text-sm sm:text-lg font-mono text-white">
+                                            {formatFoodNutrient(food, metric.key, metric.unit)}
                                         </div>
                                     );
                                 })}
@@ -234,7 +225,7 @@ const FoodComparisonTool = () => {
                                 if (!food) return <div key={i}></div>;
                                 return (
                                     <div key={i} className="text-center font-bold text-sm sm:text-lg text-emerald-400">
-                                        {food.sustainability_score}/100
+                                        {formatNutrient(food.sustainability_score, '/100')}
                                         <span className="block w-1.5 h-1.5 bg-emerald-500 rounded-full mx-auto mt-1" />
                                     </div>
                                 );
@@ -248,7 +239,7 @@ const FoodComparisonTool = () => {
                                 if (!food) return <div key={i}></div>;
                                 return (
                                     <div key={i} className="text-center font-mono text-sm sm:text-lg text-white">
-                                        {food.sustainability?.carbon_footprint} kg
+                                        {formatNutrient(food.sustainability?.carbon_footprint, ' kg')}
                                     </div>
                                 );
                             })}

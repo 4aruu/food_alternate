@@ -8,6 +8,8 @@ import FoodGridSkeleton from '../../components/FoodGridSkeleton';
 import { addToHistory } from '../../utils/history';
 
 import { getFoods } from '../../utils/api';
+import { formatFoodNutrient, passesNutrientFilter } from '../../utils/nutrition';
+import { NUTRITION_BASIS_NOTICE, SEARCH_NUTRIENT_FILTERS } from '../../constants/nutritionFilters';
 
 // --- SUB-COMPONENTS ---
 
@@ -65,11 +67,11 @@ const ResultCard = ({ item, onClick }) => (
       <div className="flex gap-4 text-xs text-gray-400 border-t border-white/20 pt-4">
         <span className="flex items-center gap-1">
           <Icon name="Activity" size={12} className="text-emerald-500" />
-          {item.nutrition?.calories || 0} cal
+          {formatFoodNutrient(item, 'calories', ' cal')}
         </span>
         <span className="flex items-center gap-1">
           <Icon name="Zap" size={12} className="text-yellow-500" />
-          {item.nutrition?.protein || 0}g prot
+          {formatFoodNutrient(item, 'protein', 'g prot')}
         </span>
       </div>
     </div>
@@ -129,12 +131,12 @@ const FoodSearchResults = () => {
 
     let results = allFoods;
 
-    // Filter by Category Button
+    // Filter by Category or Nutrient Button. A food with a missing or
+    // invalid value for the filtered nutrient never passes.
     if (activeFilter !== 'All') {
-      if (activeFilter === 'High Protein') {
-        results = results.filter(item => (item.nutrition?.protein || 0) > 15);
-      } else if (activeFilter === 'Low Calorie') {
-        results = results.filter(item => (item.nutrition?.calories || 0) < 300);
+      const nutrientFilter = SEARCH_NUTRIENT_FILTERS.find(f => f.key === activeFilter);
+      if (nutrientFilter) {
+        results = results.filter(item => passesNutrientFilter(item, nutrientFilter));
       } else {
         results = results.filter(item => item.category === activeFilter);
       }
@@ -153,7 +155,8 @@ const FoodSearchResults = () => {
   }, [activeFilter, searchTerm, allFoods]);
 
   // Categories for Filter Bar
-  const filters = ['All', 'Breakfast', 'Lunch', 'Dinner', 'Snack', 'High Protein', 'Low Calorie'];
+  const filters = ['All', 'Breakfast', 'Lunch', 'Dinner', 'Snack', ...SEARCH_NUTRIENT_FILTERS.map(f => f.key)];
+  const nutrientFilterActive = SEARCH_NUTRIENT_FILTERS.some(f => f.key === activeFilter);
 
   return (
     <div className="min-h-screen bg-black text-white font-sans selection:bg-emerald-500/30">
@@ -196,6 +199,11 @@ const FoodSearchResults = () => {
             />
           ))}
         </div>
+
+        {/* Values from many foods are shown side by side under a nutrient filter */}
+        {nutrientFilterActive && (
+          <p className="-mt-6 mb-6 text-xs text-gray-400">{NUTRITION_BASIS_NOTICE}</p>
+        )}
 
         {/* Results Grid */}
         {hasError ? (
