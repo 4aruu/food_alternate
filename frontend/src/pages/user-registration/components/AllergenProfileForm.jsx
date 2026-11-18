@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
-import { Checkbox } from '../../../components/ui/Checkbox';
 import Icon from '../../../components/AppIcon';
 import { useAllergenProfile } from '../../../context/AllergenProfileContext';
 import { NONE_CONFIRMED_HELPER, NONE_CONFIRMED_LABEL } from '../../../constants/allergens';
+import { FOCUS_RING, PRESSED_CHIP } from '../../../constants/chipStyles';
 
 // The selection is the visit's allergen profile (in memory only). Ids are the
 // canonical allergen codes.
@@ -191,44 +191,36 @@ const AllergenProfileForm = ({ onNext = () => {}, onBack = () => {} }) => {
                 {allergens?.map((allergen) => {
                   const isSelected = selectedAllergens?.includes(allergen?.id);
                   
+                  // A toggle button like the modal's allergen chips. Children are spans
+                  // (a button holds phrasing content only) and turn black on the
+                  // selected fill, where the severity colours would be unreadable.
                   return (
-                    <div
+                    <button
                       key={allergen?.id}
-                      className={`glass rounded-xl p-4 border transition-all duration-300 ${
-                        isSelected
-                          ? 'border-accent bg-accent/10 shadow-neon'
-                          : 'border-glass-border hover:border-accent/50'
-                      }`}
+                      type="button"
+                      aria-pressed={isSelected}
+                      onClick={() => handleAllergenToggle(allergen?.id)}
+                      className={`group glass flex flex-col items-stretch justify-start w-full text-left rounded-xl p-4 border transition-all duration-300 border-glass-border hover:border-white/40 ${PRESSED_CHIP} aria-pressed:p-[14px] ${FOCUS_RING}`}
                     >
-                      <div className="flex items-start space-x-3">
-                        <Checkbox
-                          checked={isSelected}
-                          onChange={() => handleAllergenToggle(allergen?.id)}
-                          className="mt-1"
-                        />
-                        
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center space-x-2">
-                              <Icon 
-                                name={allergen?.icon} 
-                                size={18} 
-                                className={getSeverityColor(allergen?.severity)}
-                              />
-                              <h4 className="font-semibold text-foreground">
-                                {allergen?.name}
-                              </h4>
-                            </div>
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getSeverityBadge(allergen?.severity)}`}>
-                              {allergen?.severity}
-                            </span>
-                          </div>
-                          <p className="text-sm text-muted-foreground">
-                            {allergen?.description}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+                      <span className="flex items-center justify-between mb-2">
+                        <span className="flex items-center space-x-2">
+                          <Icon
+                            name={allergen?.icon}
+                            size={18}
+                            className={`${getSeverityColor(allergen?.severity)} group-aria-pressed:text-black`}
+                          />
+                          <span className="font-semibold text-foreground group-aria-pressed:text-black">
+                            {allergen?.name}
+                          </span>
+                        </span>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getSeverityBadge(allergen?.severity)} group-aria-pressed:bg-black/10 group-aria-pressed:text-black`}>
+                          {allergen?.severity}
+                        </span>
+                      </span>
+                      <span className="text-sm text-muted-foreground group-aria-pressed:text-black">
+                        {allergen?.description}
+                      </span>
+                    </button>
                   );
                 })}
               </div>
@@ -273,9 +265,10 @@ const AllergenProfileForm = ({ onNext = () => {}, onBack = () => {} }) => {
         <div className="glass rounded-xl p-4 border border-glass-border space-y-2">
           <Button
             type="button"
-            variant={profile.status === 'none_confirmed' ? 'default' : 'outline'}
+            variant="outline"
             aria-pressed={profile.status === 'none_confirmed'}
             onClick={() => dispatch({ type: 'confirm_none' })}
+            className={`${PRESSED_CHIP} aria-pressed:px-[14px] ${FOCUS_RING}`}
           >
             {NONE_CONFIRMED_LABEL}
           </Button>

@@ -11,6 +11,7 @@ import { useAllergenProfile } from '../../context/AllergenProfileContext';
 import { isProfileConfigured } from '../../utils/allergenProfile';
 import { allergenDisplay, displayStateLabel, legacyAllergenDisplay } from '../../utils/allergenStatus';
 import { formatNutrient, nutrientBarPercent } from '../../utils/nutrition';
+import { FOCUS_RING, PRESSED_CHIP } from '../../constants/chipStyles';
 import {
   ALLERGEN_CODES,
   ALLERGEN_LABELS,
@@ -64,6 +65,9 @@ const MetricBar = ({ label, value, max, color, unit }) => {
   );
 };
 
+// Selected and focus styles are shared with the registration form (constants/chipStyles.js).
+const ALLERGEN_CHIP = `px-3 py-1.5 rounded-lg text-xs font-bold border transition-all text-gray-300 border-white/15 hover:border-white/40 ${PRESSED_CHIP} aria-pressed:px-[10px] aria-pressed:py-[4px] ${FOCUS_RING}`;
+
 // --- ALLERGEN PROFILE STEP ---
 const ProfileStep = ({ profile, dispatch }) => (
   <div className="bg-[#111] p-5 rounded-2xl border border-white/10 space-y-4">
@@ -82,11 +86,7 @@ const ProfileStep = ({ profile, dispatch }) => (
             type="button"
             aria-pressed={selected}
             onClick={() => dispatch({ type: 'toggle', code })}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
-              selected
-                ? 'bg-white text-black border-white'
-                : 'text-gray-300 border-white/15 hover:border-white/40'
-            }`}
+            className={ALLERGEN_CHIP}
           >
             {ALLERGEN_LABELS[code]}
           </button>
@@ -98,11 +98,7 @@ const ProfileStep = ({ profile, dispatch }) => (
         type="button"
         aria-pressed={profile.status === 'none_confirmed'}
         onClick={() => dispatch({ type: 'confirm_none' })}
-        className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
-          profile.status === 'none_confirmed'
-            ? 'bg-white text-black border-white'
-            : 'text-gray-300 border-white/15 hover:border-white/40'
-        }`}
+        className={ALLERGEN_CHIP}
       >
         {NONE_CONFIRMED_LABEL}
       </button>
@@ -297,11 +293,7 @@ const NutritionExplorerModal = () => {
                                     type="button"
                                     aria-pressed={healthGoals.includes(preset.key)}
                                     onClick={() => toggleHealthGoal(preset.key)}
-                                    className={`flex-1 min-w-[120px] py-2.5 px-2 rounded-lg text-xs font-bold transition-all ${
-                                        healthGoals.includes(preset.key)
-                                        ? 'bg-white text-black'
-                                        : 'text-gray-400 hover:text-white hover:bg-white/5'
-                                    }`}
+                                    className={`flex-1 min-w-[120px] py-2.5 px-2 rounded-lg text-xs font-bold transition-all text-gray-400 hover:text-white hover:bg-white/5 ${PRESSED_CHIP} aria-pressed:px-[5px] aria-pressed:py-[7px] ${FOCUS_RING}`}
                                 >
                                     {preset.label}
                                 </button>
