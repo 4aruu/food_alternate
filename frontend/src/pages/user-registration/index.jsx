@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Header from '../../components/ui/Header';
 import NavigationBreadcrumbs from '../../components/ui/NavigationBreadcrumbs';
@@ -6,17 +7,17 @@ import RegistrationProgress from './components/RegistrationProgress';
 import DietaryPreferencesForm from './components/DietaryPreferencesForm';
 import AllergenProfileForm from './components/AllergenProfileForm';
 import SustainabilitySettingsForm from './components/SustainabilitySettingsForm';
-import TrustSignals from './components/TrustSignals';
 import Icon from '../../components/AppIcon';
 
-// "Set up preferences": a no-account flow. Nothing here is persisted
-// (no localStorage/sessionStorage/cookies); the choices live only in this
-// component's state for the current visit.
+// "Set up preferences": a no-account flow. Nothing here is written to
+// browser storage. The allergen choice is the visit's in-memory allergen
+// profile (AllergenProfileContext); the other choices live only in this
+// component's state.
 const UserRegistration = () => {
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     dietaryPreferences: [],
-    allergens: [],
     sustainabilityImportance: 3,
     sustainabilityPriorities: []
   });
@@ -29,8 +30,10 @@ const UserRegistration = () => {
     'Sustainability Settings'
   ];
 
+  // Client-side navigation: a full page load would reset the in-memory
+  // allergen profile.
   const handleNavigate = (path) => {
-    window.location.href = path;
+    navigate(path);
   };
 
   const handleFormUpdate = (stepData) => {
@@ -92,7 +95,7 @@ const UserRegistration = () => {
                 </h1>
 
                 <p className="text-muted-foreground mb-6">
-                  Personalised filtering based on these choices is coming soon. Nothing is stored in your browser or sent to a server.
+                  Your allergen choice is used when you look for alternatives to a food, and is sent only with that request. Nothing is stored in your browser, and the choice is cleared when the page reloads.
                 </p>
 
                 <button
@@ -150,8 +153,6 @@ const UserRegistration = () => {
 
                       {currentStep === 2 && (
                         <AllergenProfileForm
-                          formData={formData}
-                          onUpdate={handleFormUpdate}
                           onNext={handleNextStep}
                           onBack={handlePreviousStep}
                         />
@@ -172,9 +173,6 @@ const UserRegistration = () => {
 
               {/* Sidebar */}
               <div className="lg:col-span-1 space-y-6">
-                {/* Trust Signals */}
-                <TrustSignals />
-
                 {/* Quick Stats */}
                 <div className="glass rounded-xl p-6 border border-glass-border">
                   <h3 className="font-semibold text-foreground mb-4 text-center">
@@ -182,16 +180,8 @@ const UserRegistration = () => {
                   </h3>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Active Users</span>
-                      <span className="text-sm font-semibold text-accent">50,000+</span>
-                    </div>
-                    <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">Food Alternatives</span>
                       <span className="text-sm font-semibold text-accent">25,000+</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Success Rate</span>
-                      <span className="text-sm font-semibold text-success">98%</span>
                     </div>
                   </div>
                 </div>

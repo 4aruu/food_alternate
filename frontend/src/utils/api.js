@@ -8,7 +8,11 @@
  *   const result = await apiFetch('/foods/search?q=rice');
  */
 
-export const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+import { profileRequestFields } from './allergenProfile.js';
+
+// `import.meta.env` is provided by Vite; it is undefined when this module is
+// loaded by Node's test runner, hence the optional chaining.
+export const API_BASE = import.meta.env?.VITE_API_BASE_URL || '/api';
 
 /**
  * Shared, deduplicated fetch of the full foods list.
@@ -54,8 +58,12 @@ export async function apiFetch(path, options = {}) {
 
     if (!response.ok) {
       const body = await response.json().catch(() => ({}));
-      const error = new Error(body.detail || `API error: ${response.status}`);
+      // `detail` is a string for application errors and a list for
+      // FastAPI's standard 422 validation body.
+      const message = typeof body.detail === 'string' ? body.detail : null;
+      const error = new Error(message || `API error: ${response.status}`);
       error.status = response.status;
+      error.code = typeof body.error_code === 'string' ? body.error_code : null;
       throw error;
     }
 
@@ -70,4 +78,43 @@ export async function apiFetch(path, options = {}) {
   } finally {
     clearTimeout(timeoutId);
   }
+}
+
+/**
+ * Build the alternatives request for one food.
+ *
+ * The allergen profile and the health goals go in the POST body only, never
+ * in the URL. Throws ProfileNotConfiguredError while the profile is
+ * unconfigured, so no request can be sent before the user has chosen.
+ *
+ * @param {number} foodId      - positive integer id of the original food
+ * @param {object} profile     - allergen profile ({ status, avoid })
+ * @param {string[]} healthGoals - preset keys
+ * @param {number} [limit]     - optional result limit (server default 10)
+ * @returns {{ path: string, options: object }}
+ */
+export function buildAlternativesRequest(foodId, profile, healthGoals = [], limit) {
+  const fields = profileRequestFields(profile);
+  if (!Number.isInteger(foodId) || foodId <= 0) {
+    throw new Error('Food ID must be a positive integer.');
+  }
+  if (!Array.isArray(healthGoals)) {
+    throw new Error('healthGoals must be an array');
+  }
+  const body = { ...fields, health_goals: [...healthGoals] };
+  if (limit !== undefined) body.limit = limit;
+  return {
+    path: `/foods/${foodId}/alternatives`,
+    options: {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    },
+  };
+}
+
+/** POST /foods/{id}/alternatives. Rejects without sending while the profile is unconfigured. */
+export async function getAlternatives(foodId, profile, healthGoals = [], limit) {
+  const { path, options } = buildAlternativesRequest(foodId, profile, healthGoals, limit);
+  return apiFetch(path, options);
 }

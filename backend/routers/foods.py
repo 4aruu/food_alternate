@@ -9,14 +9,39 @@ import logging
 import time
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, field_validator
 from slowapi import Limiter
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 from sqlalchemy.orm import Session, joinedload
 
 from database import get_db
-from models import Allergen, Food, Nutrition
-from schemas import FoodSchema
+from domain.allergens import allergen_metadata, expand_avoid, unknown_allergen_message
+from domain.food_categories import (
+    CATEGORY_SWAP_GROUPS,  # noqa: F401 - the single category mapping, owned by the domain module
+    category_scope,
+)
+from domain.nutrition_rules import (
+    health_goals_metadata,
+    unknown_health_goal_message,
+    validate_health_goals,
+)
+from models import Food
+from schemas import (
+    AlternativesRequest,
+    AlternativesResponse,
+    FoodSchema,
+    HealthGoalsResponse,
+    MetaAllergensResponse,
+)
+from services.discovery_engine import (
+    PROFILE_NONE_CONFIRMED,
+    PROFILE_RESTRICTIONS,
+    PROFILE_STATUSES,
+    OriginalFood,
+    candidate_from_record,
+    discover,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -77,66 +102,50 @@ def safe_db_query(db: Session, query_func, error_msg: str = "Database query fail
         raise HTTPException(status_code=500, detail=error_msg) from e
 
 
-# ── ALLERGEN MAP (Frontend → DB Column) ──────────────────────
-ALLERGEN_MAP = {
-    "fish": "shellfish",
-    "seafood": "shellfish",
-    "dairy": "dairy",
-    "gluten": "gluten",
-    "nuts": "nuts",
-    "soy": "soy",
-    "eggs": "eggs",
-    "egg": "eggs",
-    "shellfish": "shellfish",
-    "wheat": "gluten",     # common user term
-    "lactose": "dairy",    # common user term
-    "peanut": "nuts",      # common user term
-    "peanuts": "nuts",
-    "tree nuts": "nuts",
-}
+# ── ALTERNATIVES: APPLICATION ERRORS ─────────────────────────
+def _error(status_code: int, error_code: str, detail: str) -> JSONResponse:
+    return JSONResponse(
+        status_code=status_code,
+        content={"detail": detail, "error_code": error_code},
+    )
 
 
-# ── CATEGORY GROUPING (Culturally Validated) ─────────────────
-MEAL_CATEGORIES = [
-    "Lunch", "Dinner", "Main Course", "Chinese", "Indian", "Arabic",
-    "Fast Food", "Restaurant/Global", "Kerala Native", "Continental",
-    "Seafood", "Meat Alternative",
-]
-SNACK_CATEGORIES = ["Snack"]
-DESSERT_CATEGORIES = ["Dessert"]
-BREAKFAST_CATEGORIES = ["Breakfast"]
-DRINK_CATEGORIES = ["Drink"]
-SIDE_CATEGORIES = ["Side Dish"]
-DAIRY_CATEGORIES = ["Dairy", "Dairy Alternative"]
-GRAIN_CATEGORIES = ["Grain"]
-SWEETENER_CATEGORIES = ["Sweetener"]
-PROTEIN_CATEGORIES = ["Plant Protein"]
-SALAD_CATEGORIES = ["Salad"]
+def _check_alternatives_request(food_id: int, body: AlternativesRequest):
+    """Run the request checks in their documented order, before any query.
 
-# Map a food's category to the group of categories it can swap into
-CATEGORY_SWAP_GROUPS = {
-    **{c: MEAL_CATEGORIES + BREAKFAST_CATEGORIES for c in MEAL_CATEGORIES},
-    **{c: BREAKFAST_CATEGORIES + MEAL_CATEGORIES for c in BREAKFAST_CATEGORIES},
-    **{c: SNACK_CATEGORIES for c in SNACK_CATEGORIES},
-    **{c: DESSERT_CATEGORIES + SNACK_CATEGORIES for c in DESSERT_CATEGORIES},
-    **{c: DRINK_CATEGORIES for c in DRINK_CATEGORIES},
-    **{c: SIDE_CATEGORIES for c in SIDE_CATEGORIES},
-    **{c: DAIRY_CATEGORIES for c in DAIRY_CATEGORIES},
-    **{c: GRAIN_CATEGORIES for c in GRAIN_CATEGORIES},
-    **{c: SWEETENER_CATEGORIES for c in SWEETENER_CATEGORIES},
-    **{c: PROTEIN_CATEGORIES for c in PROTEIN_CATEGORIES},
-    **{c: SALAD_CATEGORIES + SIDE_CATEGORIES for c in SALAD_CATEGORIES},
-}
+    Returns (error response or None, canonical avoid codes, preset keys).
+    Submitted values are never logged.
+    """
+    if food_id <= 0:
+        return _error(400, "INVALID_FOOD_ID", "Food ID must be a positive integer."), [], []
 
-# ── VALID HEALTH GOALS (Medical Basis) ───────────────────────
-VALID_HEALTH_GOALS = {
-    "diabetic": "Low sugar (<5g), high fiber (>2g), low GI foods. Based on ICMR diabetes guidelines.",
-    "heart": "Low sodium (<400mg), low saturated fat (<10g). Based on AHA/ICMR cardiac diet.",
-    "weight": "Low calorie (<400 kcal), moderate protein. Based on FSSAI weight management.",
-    "muscle": "High protein, moderate calorie. Based on sports nutrition guidelines.",
-    "kidney": "Low sodium (<300mg), moderate protein (<20g). Based on NKF dietary guidelines.",
-    "cholesterol": "Low fat (<8g), low sodium. Based on lipid management protocols.",
-}
+    avoid, invalid_allergens = expand_avoid(body.avoid)
+    if invalid_allergens:
+        return _error(400, "UNKNOWN_ALLERGEN", unknown_allergen_message(invalid_allergens)), [], []
+
+    health_goals, invalid_goals = validate_health_goals(body.health_goals)
+    if invalid_goals:
+        return _error(400, "UNKNOWN_HEALTH_GOAL", unknown_health_goal_message(invalid_goals)), [], []
+
+    status = body.allergen_profile_status
+    if status not in PROFILE_STATUSES:
+        return _error(
+            422, "ALLERGEN_PROFILE_REQUIRED",
+            "Choose the allergens to avoid, or confirm that no allergen filtering should be applied.",
+        ), [], []
+
+    if status == PROFILE_RESTRICTIONS and not avoid:
+        return _error(
+            422, "PROFILE_INCONSISTENT",
+            "allergen_profile_status 'restrictions' requires at least one allergen in the avoid list.",
+        ), [], []
+    if status == PROFILE_NONE_CONFIRMED and avoid:
+        return _error(
+            422, "PROFILE_INCONSISTENT",
+            "allergen_profile_status 'none_confirmed' requires an empty avoid list.",
+        ), [], []
+
+    return None, avoid, health_goals
 
 
 # ── HELPER: Eagerly Load Relations ───────────────────────────
@@ -216,6 +225,21 @@ def search_foods(request: Request, q: str = Query(..., min_length=1, max_length=
 
 
 # ═══════════════════════════════════════════════════════════════
+# METADATA (registered before /{food_id} so "meta" is never read as an id)
+# ═══════════════════════════════════════════════════════════════
+@router.get("/meta/allergens", response_model=MetaAllergensResponse)
+def get_allergen_metadata():
+    """Allergen codes, aliases, statuses, provenance values and the preparation warning."""
+    return allergen_metadata()
+
+
+@router.get("/meta/health-goals", response_model=HealthGoalsResponse)
+def get_health_goals():
+    """The exploratory nutrition presets and their thresholds."""
+    return health_goals_metadata()
+
+
+# ═══════════════════════════════════════════════════════════════
 # 3. GET SINGLE FOOD DETAILS
 # ═══════════════════════════════════════════════════════════════
 @router.get("/{food_id}", response_model=FoodSchema)
@@ -236,198 +260,56 @@ def get_food_detail(request: Request, food_id: int, db: Session = Depends(get_db
 
 
 # ═══════════════════════════════════════════════════════════════
-# 4. SMART ALTERNATIVES ENGINE (Medically Validated)
+# 4. FOOD DISCOVERY: ALTERNATIVES (fail-closed)
 # ═══════════════════════════════════════════════════════════════
-@router.get("/{food_id}/alternatives", response_model=list[FoodSchema])
+@router.post("/{food_id}/alternatives", response_model=AlternativesResponse)
 @limiter.limit("20/minute")
 def get_alternatives(
     request: Request,
     food_id: int,
-    health_goal: str | None = None,
-    avoid: list[str] = Query(default_factory=list),
+    body: AlternativesRequest,
     db: Session = Depends(get_db)
 ):
     """
-    Returns up to 5 food alternatives based on:
-    - Category matching (culturally relevant swaps)
-    - Health goal optimization (medically validated thresholds)
-    - Allergen safety (strict exclusion)
+    Alternatives from the food's category group.
 
-    Health goals: diabetic, heart, weight, muscle, kidney, cholesterol
-    Avoid: dairy, gluten, nuts, soy, eggs, fish/shellfish
+    The allergen profile and the exploratory filters travel in the request
+    body only. Eligibility, counts and the outcome are decided by the
+    discovery engine; this handler validates the request and loads the foods.
     """
-    # ── INPUT VALIDATION ──
-    if food_id <= 0:
-        raise HTTPException(status_code=400, detail="Food ID must be a positive integer.")
+    error, avoid, health_goals = _check_alternatives_request(food_id, body)
+    if error is not None:
+        return error
 
-    if health_goal and health_goal.lower() not in VALID_HEALTH_GOALS:
-        valid_goals = ", ".join(VALID_HEALTH_GOALS.keys())
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid health goal '{health_goal}'. Valid options: {valid_goals}"
-        )
-
-    # Normalize and validate allergens
-    validated_avoid = []
-    invalid_allergens = []
-    for allergen in avoid:
-        allergen_clean = allergen.strip().lower()
-        if allergen_clean in ALLERGEN_MAP:
-            validated_avoid.append(allergen_clean)
-        elif allergen_clean:
-            invalid_allergens.append(allergen_clean)
-
-    if invalid_allergens:
-        logger.warning("Unknown allergens received: %s", invalid_allergens)
-        # Don't fail — just log and skip unknown allergens
-
-    # Normalize health goal
-    health_goal = health_goal.lower() if health_goal else None
-
-    # ── FETCH ORIGINAL FOOD ──
+    # ── FETCH ORIGINAL FOOD (first database access) ──
     def get_original():
-        return food_query_with_joins(db).filter(Food.id == food_id).first()
+        return db.query(Food).filter(Food.id == food_id).first()
 
     original = safe_db_query(db, get_original, "Failed to fetch food")
     if not original:
-        raise HTTPException(status_code=404, detail="Food not found.")
+        return _error(404, "FOOD_NOT_FOUND", "Food not found.")
 
-    # Safety check: Ensure nutrition data exists
-    if not original.nutrition:
-        logger.warning("Food '%s' (ID: %s) has no nutrition data.", original.name, food_id)
+    # ── LOAD THE CATEGORY SCOPE ──
+    scope, _ = category_scope(original.category)
 
-    # ── DETERMINE TARGET CATEGORIES ──
-    target_categories = CATEGORY_SWAP_GROUPS.get(
-        original.category, [original.category]
-    )
-
-    # ── BUILD QUERY ──
-    def build_query():
-        query = food_query_with_joins(db).join(Nutrition).join(Allergen).filter(
+    def get_candidates():
+        if not scope:
+            return []
+        return food_query_with_joins(db).filter(
             Food.id != original.id,
-            Food.category.in_(target_categories)
-        )
+            Food.category.in_(scope)
+        ).all()
 
-        # ── ALLERGEN SAFETY (Strict — never relaxed) ──
-        for allergen in validated_avoid:
-            db_col_name = ALLERGEN_MAP[allergen]
-            allergen_col = getattr(Allergen, db_col_name, None)
-            if allergen_col is not None:
-                query = query.filter(allergen_col == False)
+    foods = safe_db_query(db, get_candidates, "Failed to compute alternatives")
 
-        # ── HEALTH GOAL OPTIMIZATION ──
-        if health_goal == "diabetic":
-            # ICMR: <5g sugar, >2g fiber, prefer low carbs
-            query = query.filter(
-                Nutrition.sugar < 5,
-                Nutrition.fiber > 2
-            ).order_by(Nutrition.sugar.asc(), Nutrition.fiber.desc(), Nutrition.carbohydrates.asc())
-
-        elif health_goal == "heart":
-            # AHA/ICMR: <400mg sodium, <10g sat fat
-            query = query.filter(
-                Nutrition.sodium < 400,
-                Nutrition.fat < 10
-            ).order_by(Nutrition.sodium.asc(), Nutrition.fat.asc())
-
-        elif health_goal == "weight":
-            # FSSAI: <400 kcal, prefer high protein for satiety
-            query = query.filter(
-                Nutrition.calories < 400
-            ).order_by(Nutrition.calories.asc(), Nutrition.protein.desc())
-
-        elif health_goal == "muscle":
-            # Sports nutrition: maximize protein, moderate calories
-            query = query.filter(
-                Nutrition.protein > 10
-            ).order_by(Nutrition.protein.desc(), Nutrition.calories.asc())
-
-        elif health_goal == "kidney":
-            # NKF: low sodium, moderate protein
-            query = query.filter(
-                Nutrition.sodium < 300,
-                Nutrition.protein < 20
-            ).order_by(Nutrition.sodium.asc())
-
-        elif health_goal == "cholesterol":
-            # Lipid mgmt: low fat, low sodium
-            query = query.filter(
-                Nutrition.fat < 8
-            ).order_by(Nutrition.fat.asc(), Nutrition.sodium.asc())
-
-        else:
-            # Default: better nutrition score than original
-            query = query.order_by(Food.nutrition_score.desc())
-
-        return query.limit(5).all()
-
-    results = safe_db_query(db, build_query, "Failed to compute alternatives")
-
-    # ── FALLBACK: Relax health goal thresholds but KEEP allergen safety ──
-    if len(results) == 0 and health_goal:
-        def fallback_query():
-            query = food_query_with_joins(db).join(Nutrition).join(Allergen).filter(
-                Food.id != original.id,
-                Food.category.in_(target_categories)
-            )
-
-            # Re-apply allergen safety (NEVER relaxed)
-            for allergen in validated_avoid:
-                db_col_name = ALLERGEN_MAP[allergen]
-                allergen_col = getattr(Allergen, db_col_name, None)
-                if allergen_col is not None:
-                    query = query.filter(allergen_col == False)
-
-            # Relaxed sorting without strict filters
-            if health_goal == "diabetic":
-                query = query.order_by(Nutrition.sugar.asc(), Nutrition.fiber.desc())
-            elif health_goal == "heart":
-                query = query.order_by(Nutrition.sodium.asc(), Nutrition.fat.asc())
-            elif health_goal == "weight":
-                query = query.order_by(Nutrition.calories.asc())
-            elif health_goal == "muscle":
-                query = query.order_by(Nutrition.protein.desc())
-            elif health_goal == "kidney":
-                query = query.order_by(Nutrition.sodium.asc())
-            elif health_goal == "cholesterol":
-                query = query.order_by(Nutrition.fat.asc())
-
-            return query.limit(5).all()
-
-        results = safe_db_query(db, fallback_query, "Fallback query failed")
-
-    # ── SECOND FALLBACK: Broaden category scope ──
-    if len(results) == 0:
-        def broad_fallback():
-            query = food_query_with_joins(db).join(Nutrition).join(Allergen).filter(
-                Food.id != original.id
-            )
-
-            for allergen in validated_avoid:
-                db_col_name = ALLERGEN_MAP[allergen]
-                allergen_col = getattr(Allergen, db_col_name, None)
-                if allergen_col is not None:
-                    query = query.filter(allergen_col == False)
-
-            return query.order_by(Food.nutrition_score.desc()).limit(5).all()
-
-        results = safe_db_query(db, broad_fallback, "Broad fallback query failed")
-
-    return results
-
-
-# ═══════════════════════════════════════════════════════════════
-# 5. HEALTH GOALS METADATA ENDPOINT
-# ═══════════════════════════════════════════════════════════════
-@router.get("/meta/health-goals")
-def get_health_goals():
-    """Returns all valid health goals with medical descriptions."""
-    return {
-        "goals": [
-            {"key": k, "description": v}
-            for k, v in VALID_HEALTH_GOALS.items()
-        ]
-    }
+    return discover(
+        OriginalFood(id=original.id, name=original.name, category=original.category),
+        [candidate_from_record(food) for food in foods],
+        profile_status=body.allergen_profile_status,
+        avoid=avoid,
+        health_goals=health_goals,
+        limit=body.limit,
+    )
 
 
 # ═══════════════════════════════════════════════════════════════

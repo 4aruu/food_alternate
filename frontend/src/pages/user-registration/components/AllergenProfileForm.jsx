@@ -3,9 +3,14 @@ import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import { Checkbox } from '../../../components/ui/Checkbox';
 import Icon from '../../../components/AppIcon';
+import { useAllergenProfile } from '../../../context/AllergenProfileContext';
+import { NONE_CONFIRMED_HELPER, NONE_CONFIRMED_LABEL } from '../../../constants/allergens';
 
-const AllergenProfileForm = ({ formData = {}, onUpdate = () => {}, onNext = () => {}, onBack = () => {} }) => {
-  const [selectedAllergens, setSelectedAllergens] = useState(formData?.allergens || []);
+// The selection is the visit's allergen profile (in memory only). Ids are the
+// canonical allergen codes.
+const AllergenProfileForm = ({ onNext = () => {}, onBack = () => {} }) => {
+  const { profile, dispatch } = useAllergenProfile();
+  const selectedAllergens = profile.status === 'restrictions' ? profile.avoid : [];
   const [searchQuery, setSearchQuery] = useState('');
 
   const commonAllergens = [
@@ -15,10 +20,10 @@ const AllergenProfileForm = ({ formData = {}, onUpdate = () => {}, onNext = () =
       category: 'Nuts',
       severity: 'high',
       icon: 'Nut',
-      description: 'Tree nuts and peanut products'
+      description: 'Peanuts and peanut products'
     },
     {
-      id: 'tree-nuts',
+      id: 'tree_nuts',
       name: 'Tree Nuts',
       category: 'Nuts',
       severity: 'high',
@@ -43,7 +48,15 @@ const AllergenProfileForm = ({ formData = {}, onUpdate = () => {}, onNext = () =
     },
     {
       id: 'wheat',
-      name: 'Wheat/Gluten',
+      name: 'Wheat',
+      category: 'Grains',
+      severity: 'medium',
+      icon: 'Wheat',
+      description: 'Wheat and wheat products'
+    },
+    {
+      id: 'gluten',
+      name: 'Gluten',
       category: 'Grains',
       severity: 'medium',
       icon: 'Wheat',
@@ -97,12 +110,7 @@ const AllergenProfileForm = ({ formData = {}, onUpdate = () => {}, onNext = () =
   );
 
   const handleAllergenToggle = (allergenId) => {
-    const updatedAllergens = selectedAllergens?.includes(allergenId)
-      ? selectedAllergens?.filter(id => id !== allergenId)
-      : [...selectedAllergens, allergenId];
-    
-    setSelectedAllergens(updatedAllergens);
-    onUpdate({ allergens: updatedAllergens });
+    dispatch({ type: 'toggle', code: allergenId });
   };
 
   const getSeverityColor = (severity) => {
@@ -150,7 +158,7 @@ const AllergenProfileForm = ({ formData = {}, onUpdate = () => {}, onNext = () =
       <div className="text-center mb-8">
         <h2 className="text-2xl font-bold text-foreground mb-2">Allergen Profile</h2>
         <p className="text-muted-foreground">
-          Help us keep you safe by identifying your food allergies and intolerances
+          Choose the allergens to avoid when NutriSwap shows alternatives
         </p>
       </div>
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -254,12 +262,25 @@ const AllergenProfileForm = ({ formData = {}, onUpdate = () => {}, onNext = () =
               <p className="text-sm text-warning flex items-start space-x-2">
                 <Icon name="Shield" size={16} className="mt-0.5 flex-shrink-0" />
                 <span>
-                  We'll use this information to highlight potential allergens in food alternatives and provide safer recommendations.
+                  Alternatives are shown only when these allergens are verified absent. NutriSwap's allergen data is incomplete, so this can leave no alternatives.
                 </span>
               </p>
             </div>
           </div>
         )}
+
+        {/* The only way to choose no allergen filtering */}
+        <div className="glass rounded-xl p-4 border border-glass-border space-y-2">
+          <Button
+            type="button"
+            variant={profile.status === 'none_confirmed' ? 'default' : 'outline'}
+            aria-pressed={profile.status === 'none_confirmed'}
+            onClick={() => dispatch({ type: 'confirm_none' })}
+          >
+            {NONE_CONFIRMED_LABEL}
+          </Button>
+          <p className="text-sm text-muted-foreground">{NONE_CONFIRMED_HELPER}</p>
+        </div>
 
         <div className="flex items-center justify-between pt-6">
           <Button
@@ -285,7 +306,7 @@ const AllergenProfileForm = ({ formData = {}, onUpdate = () => {}, onNext = () =
       </form>
       <div className="text-center">
         <p className="text-xs text-muted-foreground">
-          Your allergen information is kept private and secure. You can update this anytime in your profile.
+          Your choice is kept only for this visit. It is not stored in your browser and is cleared when the page reloads.
         </p>
       </div>
     </div>

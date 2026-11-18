@@ -53,6 +53,7 @@ from fastapi.testclient import TestClient
 from main import app
 from models import Allergen, Food, Nutrition, Sustainability
 from routers.foods import clear_foods_cache
+from routers.foods import limiter as foods_limiter
 
 
 def override_get_db():
@@ -72,6 +73,9 @@ def setup_database():
     # The /foods/ endpoint serves from an in-process TTL cache; it must be
     # reset per test or one test's data would leak into the next.
     clear_foods_cache()
+    # Rate-limit counters are in-process too; without a reset, requests made
+    # by earlier tests would count against later ones.
+    foods_limiter.reset()
     Base.metadata.create_all(bind=test_engine)
     yield
     Base.metadata.drop_all(bind=test_engine)
@@ -98,8 +102,11 @@ def seed_food(db, name, category="Lunch", nutrition_score=80,
               sugar=3, sodium=200, dairy=False, nuts=False, gluten=False,
               soy=False, eggs=False, shellfish=False,
               carbon=2.0, water=50.0, land=1.0, sus_score=75,
-              alt_id=None):
-    """Helper to insert a fully-formed food item into the test DB."""
+              alt_id=None, with_nutrition=True, with_allergens=True):
+    """Helper to insert a fully-formed food item into the test DB.
+
+    with_nutrition=False / with_allergens=False leave that record out.
+    """
     food = Food(
         name=name,
         brand="Test Brand",
@@ -115,15 +122,17 @@ def seed_food(db, name, category="Lunch", nutrition_score=80,
     db.add(food)
     db.flush()  # get food.id
 
-    db.add(Nutrition(
-        food_id=food.id, calories=calories, protein=protein,
-        fat=fat, carbohydrates=carbs, fiber=fiber,
-        sugar=sugar, sodium=sodium,
-    ))
-    db.add(Allergen(
-        food_id=food.id, dairy=dairy, nuts=nuts, gluten=gluten,
-        soy=soy, eggs=eggs, shellfish=shellfish,
-    ))
+    if with_nutrition:
+        db.add(Nutrition(
+            food_id=food.id, calories=calories, protein=protein,
+            fat=fat, carbohydrates=carbs, fiber=fiber,
+            sugar=sugar, sodium=sodium,
+        ))
+    if with_allergens:
+        db.add(Allergen(
+            food_id=food.id, dairy=dairy, nuts=nuts, gluten=gluten,
+            soy=soy, eggs=eggs, shellfish=shellfish,
+        ))
     db.add(Sustainability(
         food_id=food.id, carbon_footprint=carbon, water_usage=water,
         land_use=land, sustainability_score=sus_score,
