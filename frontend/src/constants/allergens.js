@@ -92,7 +92,7 @@ export const OUTCOME_TEXTS = Object.freeze({
     "No alternatives in this food's category group match your selected " +
     'exploratory filters.',
   no_candidates: "There are no other foods in this food's category group.",
-  alternatives_found: '{n} alternatives found.',
+  alternatives_found: 'Alternatives found: {n}.',
 });
 
 // Every fixed text in this file, keyed as in the blueprint (§1.6).

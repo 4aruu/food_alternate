@@ -41,7 +41,7 @@ const AnimatedCounter = ({ end, duration = 2, suffix = "+" }) => {
 
 // Flipping Text Component
 const FlippingText = () => {
-  const words = ["Live Better.", "Stay Healthier.", "Feel Stronger.", "Thrive Daily."];
+  const words = ["Eat Local.", "Stay Curious.", "Explore Kerala.", "Try Something New."];
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
@@ -612,17 +612,17 @@ const LandingPage = () => {
               className="bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border border-cyan-500/20 rounded-3xl p-8 text-center"
             >
               <div className="text-5xl font-bold text-cyan-400 mb-4">📈</div>
-              <h3 className="text-xl font-bold mb-3">Better Outcomes</h3>
-              <p className="text-gray-400">Improved long-term dietary compliance</p>
+              <h3 className="text-xl font-bold mb-3">More Variety</h3>
+              <p className="text-gray-400">Explore options within the same food group</p>
             </motion.div>
           </div>
 
           <div className="bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-cyan-500/20 border border-emerald-500/30 rounded-3xl p-6 sm:p-12 text-center backdrop-blur-sm">
             <h3 className="text-xl sm:text-3xl font-bold mb-4 sm:mb-6">
-              Empowering healthier lives through intelligent food choices
+              Find familiar alternatives to the foods you eat
             </h3>
             <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
-              NutriAI bridges the gap between medical advice and daily meals, making healthy eating accessible, culturally relevant, and sustainable.
+              NutriSwap helps you explore alternatives within familiar food groups, and says clearly what its data can't confirm.
             </p>
             <button
               onClick={() => handleNavigation('/food-search-results')}

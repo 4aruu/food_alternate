@@ -75,7 +75,7 @@ OUTCOME_TEXTS = {
         "exploratory filters."
     ),
     OUTCOME_NO_CANDIDATES: "There are no other foods in this food's category group.",
-    OUTCOME_ALTERNATIVES_FOUND: "{n} alternatives found.",
+    OUTCOME_ALTERNATIVES_FOUND: "Alternatives found: {n}.",
 }
 REASON_FILTER_THRESHOLD_TEXT = (
     "Matches your selected exploratory filter: {field} {direction} {value} {unit} "

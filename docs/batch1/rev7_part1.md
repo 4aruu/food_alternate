@@ -155,10 +155,12 @@ Fixed text `outcome.no_candidates`:
 There are no other foods in this food's category group.
 ```
 
+Amended 2026-11-18 (copy-cleanup PR): previously `{n} alternatives found.`, which read '1 alternatives found.'
+
 Fixed text `outcome.alternatives_found` (`{n}` is `eligible_total`):
 
 ```text
-{n} alternatives found.
+Alternatives found: {n}.
 ```
 
 Fixed text `none_confirmed_label`:

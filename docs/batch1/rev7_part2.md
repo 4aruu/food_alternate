@@ -345,11 +345,13 @@ Schema: `AlternativesResponse`
     },
     "allergen_detail": {"unit": "candidate_allergen_pairs", "additive_across_allergens": false, "by_allergen": {}}
   },
-  "outcome": {"code": "alternatives_found", "text": "3 alternatives found."},
+  "outcome": {"code": "alternatives_found", "text": "Alternatives found: 3."},
   "comparability": {"cross_food_nutrition_comparable": false, "reason": "unknown_and_inconsistent_measurement_basis"},
   "disclaimer": "Exploratory filters for food discovery. Not medical advice and not validated for any medical condition. Allergen information is incomplete and can depend on preparation; always check labels or ask the preparer."
 }
 ```
+
+Amended 2026-11-18 (copy-cleanup PR): the outcome text in this example was previously `3 alternatives found.`; see the amendment in §1.6 of Part 1.
 
 Checks: I1 1 + 48 = 49; I2 3 + 49 = 52; I3 1 = min(3, 1). The food has an allergen row, so wheat is `not_tracked` (rule 2 in §1.2) even though "wheat" is in the name: the legacy data has no wheat column.
 

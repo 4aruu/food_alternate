@@ -5,7 +5,7 @@ never a server error (500); oversized bodies are still rejected with 413.
 
 import pytest
 
-ENDPOINT = "/foods/explain-swap"
+ENDPOINT = "/foods/1/alternatives"
 JSON = {"content-type": "application/json"}
 
 

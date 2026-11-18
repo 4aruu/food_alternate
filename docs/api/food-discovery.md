@@ -137,7 +137,7 @@ There are no other foods in this food's category group.
 Fixed text `outcome.alternatives_found` (`{n}` is `eligible_total`):
 
 ```text
-{n} alternatives found.
+Alternatives found: {n}.
 ```
 
 Fixed text `none_confirmed_label`:
@@ -500,7 +500,7 @@ Schema: `AlternativesResponse`
     },
     "allergen_detail": {"unit": "candidate_allergen_pairs", "additive_across_allergens": false, "by_allergen": {}}
   },
-  "outcome": {"code": "alternatives_found", "text": "3 alternatives found."},
+  "outcome": {"code": "alternatives_found", "text": "Alternatives found: 3."},
   "comparability": {"cross_food_nutrition_comparable": false, "reason": "unknown_and_inconsistent_measurement_basis"},
   "disclaimer": "Exploratory filters for food discovery. Not medical advice and not validated for any medical condition. Allergen information is incomplete and can depend on preparation; always check labels or ask the preparer."
 }
@@ -694,6 +694,8 @@ Schema: `AllergenStatusMap`
 - The relaxed-threshold and broadened-category fallbacks are gone: when nothing is eligible, the response says why instead of returning other foods.
 - `GET /foods/meta/health-goals` returns `presets` and `disclaimer`. It used to return `goals`, a list of `key` and `description` pairs.
 - On `GET /foods`, `GET /foods/search` and `GET /foods/{id}`, negative nutrition values are returned as `null` and listed in `nutrition_quality.invalid_fields`. They used to be returned as 0.
+- Copy-cleanup PR (2026-11-18): the `alternatives_found` outcome text changed from `{n} alternatives found.` to `Alternatives found: {n}.`.
+- Copy-cleanup PR (2026-11-18): `POST /foods/explain-swap` is removed. The path now returns 405.
 
 ## 7. Backlog (not fixed in Batch 1)
 
@@ -730,19 +732,13 @@ Schema: `AllergenStatusMap`
   - `frontend/src/pages/food-comparison-tool/components/FilterControls.jsx`
 - Sustainability values: `SustainabilitySchema` still clamps negative values to 0, and a NaN sustainability value can still cause a 500.
 
-### Copy cleanup (follow-up PR after Batch 1)
+### Copy cleanup (done, 2026-11-18)
 
-- Comparative wording in rendered files outside the Batch 1 scope (acceptance criterion 48 holds only within the Batch 1 files):
-  - `frontend/src/components/ui/MobileNavigation.jsx`: "Discover healthier food choices" (shown on every page that renders the header);
-  - `frontend/src/pages/landing-page/index.jsx`: "Live Better.", "Stay Healthier.", "Better Outcomes", "Empowering healthier lives through intelligent food choices";
-  - `frontend/src/pages/user-dashboard/index.jsx`: "Better options discovered".
-- `backend/routers/foods.py`: the module docstring "Medically & Culturally Validated Engine", and the `POST /foods/explain-swap` texts ("healthier", "better choice"). The explain-swap endpoint is outside the Batch 1 scope.
-- `backend/models.py` line 29: the code comment "the ID of the better food option" on `healthy_alternative_id`.
-- `frontend/src/pages/user-registration/components/TrustSignals.jsx`: unrendered since Batch 1. It contains "Your Data is Safe With Us" and certification claims that are not true (USDA Verified, GDPR Compliant, SOC 2 Certified, ISO 27001). Delete or rewrite.
+The copy-cleanup PR removed the comparative and medical wording from every rendered frontend file (criterion 48 now holds for all files reachable from the app entry point), removed `POST /foods/explain-swap`, and deleted the unrendered files with false claims (both `TrustSignals.jsx`, `SmartSwapButton.jsx`, the landing `CallToAction`, `FeatureHighlights` and `UserTestimonials`, and the dashboard `ComparisonPreview`).
 
 ### Other leftovers
 
 - Brand labels (Kerala Native, Restaurant/Global, Continental) listed among the meal categories.
-- `frontend/src/pages/landing-page/components/TrustSignals.jsx` is imported nowhere and contains "Allergen Safety".
-- The preferences page sidebar still shows "Food Alternatives 25,000+"; the seed data has 231 foods.
+- Selected allergen chips, filter presets and "Continue without allergen filtering" show no visible selected style (`aria-pressed` is correct). The Tailwind config does not redefine `white`, so the cause is still unknown. Separate PR.
+- Unrendered files outside the nine listed under "Batch 2" above remain, for example `frontend/src/components/ui/FlippingText.jsx` (kept for Phase 3).
 - `frontend/src/utils/history.js` writes viewed foods (food data only, never the allergen profile) to `localStorage` under `user_history`.

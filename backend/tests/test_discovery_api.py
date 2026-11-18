@@ -351,7 +351,7 @@ def test_none_confirmed_applies_no_allergen_gate(client, breakfast):
     assert data["applied"]["avoid"] == []
     assert data["eligible_total"] == 3
     assert data["excluded"]["allergen_detail"]["by_allergen"] == {}
-    assert data["outcome"] == {"code": "alternatives_found", "text": "3 alternatives found."}
+    assert data["outcome"] == {"code": "alternatives_found", "text": "Alternatives found: 3."}
 
     by_name = {r["food"]["name"]: r for r in data["results"]}
     flagged = by_name["Milk Porridge"]["uncertainty"][0]
@@ -374,7 +374,7 @@ def test_preset_with_none_confirmed(client, breakfast):
     assert data["eligible_total"] == 2
     assert len(data["results"]) == 1
     assert data["excluded"]["by_primary_reason"]["failed_filter"] == 1
-    assert data["outcome"]["text"] == "2 alternatives found."
+    assert data["outcome"]["text"] == "Alternatives found: 2."
     result = data["results"][0]
     assert result["food"]["name"] == "Milk Porridge"  # lowest id among the eligible
     assert result["reasons"] == [

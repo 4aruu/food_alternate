@@ -731,15 +731,10 @@ raw_native_list = [
 ]
 
 # ─────────────────────────────────────────────────────────────
-# DIRECT SWAPS — Medically & Culturally Validated
-# Sources: ICMR/NIN dietary guidelines, FSSAI Eat Right India,
-#          Ayurvedic food pairing principles, Kerala clinical
-#          nutrition studies (NIN Hyderabad, AIMS Kochi).
-# Rule: Every swap must satisfy AT LEAST 2 of:
-#   1. Lower calories/fat/sugar/sodium
-#   2. Higher protein/fiber
-#   3. Same meal-type / culturally equivalent
-#   4. Medically recommended for at least one health goal
+# DIRECT SWAPS — legacy hand-picked pairs (not validated)
+# Each pair links a food to a related alternative, usually of the
+# same meal type. The pairs are not medically or nutritionally
+# reviewed and are not used by the alternatives endpoint.
 # ─────────────────────────────────────────────────────────────
 DIRECT_SWAPS = {
     # === BREAKFAST ===

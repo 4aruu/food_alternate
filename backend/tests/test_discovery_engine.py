@@ -307,7 +307,7 @@ def test_outcome_alternatives_found_substitutes_eligible_total():
     response = run([cand(2), cand(3), cand(4)], avoid=["milk"], limit=1)
     assert response["eligible_total"] == 3
     assert len(response["results"]) == 1
-    assert response["outcome"] == {"code": "alternatives_found", "text": "3 alternatives found."}
+    assert response["outcome"] == {"code": "alternatives_found", "text": "Alternatives found: 3."}
 
 
 def test_decide_outcome_order():
@@ -606,7 +606,7 @@ def test_fixed_texts():
         ),
         "outcome.no_matching_alternatives": "No alternatives in this food's category group match your selected exploratory filters.",
         "outcome.no_candidates": "There are no other foods in this food's category group.",
-        "outcome.alternatives_found": "{n} alternatives found.",
+        "outcome.alternatives_found": "Alternatives found: {n}.",
         "reason.filter_threshold": "Matches your selected exploratory filter: {field} {direction} {value} {unit} (stored value {stored} {unit}; measurement basis unknown)",
         "reason.category": "Same food category as {original}: {category}",
         "reason.swap_group": "Same category group as {original}: {category}",
