@@ -2,7 +2,7 @@
 
 # 🥗 NutriAI — Smart Food Alternatives Finder
 
-**Discover healthier, culturally-validated food alternatives powered by a medically-grounded recommendation engine.**
+**Discover culturally familiar food alternatives, with clear notes on what the data can't confirm.**
 
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/Frontend-React%2018-61DAFB?style=for-the-badge&logo=react)](https://react.dev/)
@@ -36,14 +36,14 @@
 
 ## 🧠 What Is This?
 
-**NutriAI** is a full-stack web application that helps users find healthier food alternatives based on:
+**NutriAI** is a full-stack web application that helps users explore food alternatives based on:
 
-- 🏥 **Medical health goals** (diabetic, heart health, weight loss, muscle gain, kidney care, cholesterol)
-- 🌿 **Allergen avoidance** (dairy, gluten, nuts, soy, eggs, shellfish)
+- 🌿 **Allergen avoidance**, fail-closed: a food is shown for an avoided allergen only when the data records that allergen as absent
+- 🔎 **Exploratory nutrition filters** (presets such as "sugar under 5 g"; not medical advice)
 - 🌍 **Cultural relevance** (Kerala native dishes, Arabic, Chinese, Continental, Fast Food, and more)
 - ♻️ **Sustainability** (carbon footprint, water usage, land use scores)
 
-The recommendation engine is validated against **ICMR/NIN dietary guidelines**, **FSSAI Eat Right India** standards, and **Ayurvedic food pairing** principles — making it far more sophisticated than a simple calorie tracker.
+The allergen, nutrition and sustainability data is incomplete and not medically validated. See [`docs/api/food-discovery.md`](docs/api/food-discovery.md) for what the app does and does not claim.
 
 ---
 
@@ -52,12 +52,11 @@ The recommendation engine is validated against **ICMR/NIN dietary guidelines**, 
 | Feature | Description |
 |---|---|
 | 🔍 **Smart Food Search** | Case-insensitive search by name or category across the full food database |
-| 🔄 **Intelligent Alternatives Engine** | Suggests up to 5 swaps with a multi-tier fallback system (strict → relaxed → broad) |
-| 🩺 **Health Goal Filtering** | 6 medically-validated goals with clinically-backed nutritional thresholds |
-| 🚫 **Allergen Safety** | Strict allergen exclusion — never relaxed, even in fallback queries |
+| 🔄 **Alternatives Engine** | Alternatives from the same category group; when nothing is eligible, the response says why instead of falling back to other foods |
+| 🔎 **Exploratory Filters** | 6 nutrition presets applied to the stored values; not medical advice |
+| 🚫 **Fail-Closed Allergen Filtering** | An allergen restriction excludes every food whose status is not recorded as absent |
 | ⚖️ **Side-by-Side Comparison** | Compare any two foods on calories, protein, fat, fiber, sodium, and sustainability |
 | 📊 **Nutrition Explorer** | Detailed nutritional breakdown with visual progress bars |
-| 🧬 **Swap Explanation Engine** | Multi-factor, medically-sourced explanation of *why* the alternative is better |
 | 🌱 **Sustainability Scoring** | Carbon footprint, water usage, and land use data per food item |
 | 📱 **Fully Responsive** | Mobile-first design, touch-friendly navigation |
 | 🔒 **Production-Ready Security** | CORS, rate limiting, security headers, input validation, SQL injection prevention |
@@ -411,56 +410,15 @@ The GET form of this endpoint is removed (405). The full contract — allergen s
 ---
 
 ### `GET /foods/meta/health-goals`
-Returns all valid health goals with their medical descriptions.
+Returns the six exploratory filter presets, their thresholds on the stored values, and the not-medical-advice disclaimer.
 
-**Response:**
-```json
-{
-  "goals": [
-    { "key": "diabetic", "description": "Low sugar (<5g), high fiber (>2g), low GI foods. Based on ICMR diabetes guidelines." },
-    ...
-  ]
-}
-```
-
----
-
-### `POST /foods/explain-swap`
-Generates a medically-validated, multi-factor explanation for why one food is a better choice than another.
-
-**Rate limit:** 10 req/min
-
-**Request Body:**
-```json
-{
-  "original": "Porotta",
-  "alternative": "Chapati"
-}
-```
-
-| Field | Type | Constraints |
-|---|---|---|
-| `original` | `string` | Required, non-empty, max 200 chars |
-| `alternative` | `string` | Required, non-empty, max 200 chars |
-
-**Factors checked:** sugar reduction, calorie savings (with contextual comparison), protein increase, sodium reduction, fat reduction, fiber increase, sustainability score improvement.
-
-**Response:**
-```json
-{
-  "explanation": "Saves 550 calories per serving — equivalent to a full meal's worth of energy.",
-  "all_benefits": [
-    "Saves 550 calories...",
-    "Contains 300mg less sodium...",
-    "Adds 10g more dietary fiber..."
-  ],
-  "benefit_count": 3
-}
-```
+**Response:** `200 OK` — a `HealthGoalsResponse` object: `presets` (each with `key`, `label`, `kind`, `basis` and `filters`) and `disclaimer`. The full example is in [`docs/api/food-discovery.md`](docs/api/food-discovery.md) §5.8.
 
 ---
 
 ### `FoodSchema` — Response Object Shape
+
+Returned by `GET /foods/`, `GET /foods/search` and `GET /foods/{food_id}`. A missing, negative, NaN or infinite nutrition value is returned as `null` (never 0) and listed in `nutrition_quality`. The `allergens` object holds legacy keyword-based flags: `false` means unknown, never absent (see `docs/api/food-discovery.md` §3).
 
 ```json
 {
@@ -481,7 +439,12 @@ Generates a medically-validated, multi-factor explanation for why one food is a 
     "carbohydrates": 75,
     "fiber": 4,
     "sugar": 3,
-    "sodium": 850
+    "sodium": null
+  },
+  "nutrition_quality": {
+    "nutrition_record_present": true,
+    "missing_fields": ["sodium"],
+    "invalid_fields": []
   },
   "allergens": {
     "dairy": false,

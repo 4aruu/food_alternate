@@ -144,13 +144,6 @@ class FoodSchema(BaseModel):
         from_attributes = True  # Updated for Pydantic V2
 
 
-class SwapExplanationResponse(BaseModel):
-    """Response schema for the explain-swap endpoint."""
-    explanation: str
-    all_benefits: list[str] = Field(default_factory=list)
-    benefit_count: int = 0
-
-
 class ErrorResponse(BaseModel):
     """Standard error response format."""
     detail: str

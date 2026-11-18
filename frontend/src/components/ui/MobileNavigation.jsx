@@ -207,7 +207,7 @@ const MobileNavigation = ({
               NutriSwap
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              Discover healthier food choices
+              Discover food alternatives
             </p>
           </div>
         </div>

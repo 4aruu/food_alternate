@@ -137,30 +137,7 @@ def test_health_goal_case_insensitive(client, db):
     assert response.json()["applied"]["health_goals"] == ["diabetic"]
 
 
-# ═══════════════════════════════════════════════════════════
-# Explain-Swap Validation
-# ═══════════════════════════════════════════════════════════
-
-def test_explain_swap_missing_fields(client):
-    """Missing required fields should return 422."""
-    response = client.post("/foods/explain-swap", json={"original": "Test"})
-    assert response.status_code == 422
-
-
-def test_explain_swap_non_json_body(client):
-    """Non-JSON body should return 422."""
-    response = client.post(
-        "/foods/explain-swap",
-        content="not json",
-        headers={"Content-Type": "application/json"},
-    )
-    assert response.status_code == 422
-
-
-def test_explain_swap_whitespace_only_name(client):
-    """Whitespace-only food names should be rejected."""
-    response = client.post("/foods/explain-swap", json={
-        "original": "   ",
-        "alternative": "Something",
-    })
-    assert response.status_code == 422
+def test_explain_swap_is_removed(client):
+    """The explain-swap endpoint was removed in the copy-cleanup PR."""
+    response = client.post("/foods/explain-swap", json={"original": "A", "alternative": "B"})
+    assert response.status_code == 405

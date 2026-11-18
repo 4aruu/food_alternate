@@ -586,7 +586,7 @@ def test_rendered_set_includes_the_batch_pages_and_excludes_the_unrendered_files
         assert path in RENDERED, path
     for path in UNRENDERED:
         assert path not in RENDERED, path
-    assert "pages/user-registration/components/TrustSignals.jsx" not in RENDERED
+    assert not (FRONTEND_SRC / "pages/user-registration/components/TrustSignals.jsx").exists()
 
 
 def _scope_sources():
@@ -751,11 +751,11 @@ def test_cooking_or_heating_appears_only_in_the_warning():
         assert not pattern.search(_without_warning(read(BACKEND / relative))), relative
 
 
-def test_no_comparative_claims_in_the_batch_files():
-    # Scope: the Batch 1 frontend files and the backend text modules. Rendered
-    # files outside the Batch 1 scope are listed as "Copy cleanup" in the API doc.
-    for path, source in _scope_sources().items():
-        lowered = source.lower()
+def test_no_comparative_claims_in_rendered_files():
+    # Scope: every frontend module reachable from the app entry point (which
+    # includes the Batch 1 frontend files) and the backend text modules.
+    for path in sorted(RENDERED | set(SCOPE_FRONTEND)):
+        lowered = frontend(path).lower()
         for word in COMPARATIVE:
             assert word not in lowered, (path, word)
     for relative in BACKEND_TEXT_SOURCES:

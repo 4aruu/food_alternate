@@ -185,7 +185,7 @@ test('fixed texts equal the blueprint', () => {
     no_verified_alternatives: "NutriSwap can't currently verify any alternative that meets your allergen restrictions, because its ingredient and cross-contact data is incomplete. No alternatives are shown rather than unverified ones.",
     no_matching_alternatives: "No alternatives in this food's category group match your selected exploratory filters.",
     no_candidates: "There are no other foods in this food's category group.",
-    alternatives_found: '{n} alternatives found.',
+    alternatives_found: 'Alternatives found: {n}.',
   });
 });
 

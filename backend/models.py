@@ -26,7 +26,7 @@ class Food(Base):
     sustainability = relationship("Sustainability", uselist=False, back_populates="food", cascade="all, delete-orphan")
 
     # --- ⭐ NEW: THE INTELLIGENT LINK ---
-    # This stores the ID of the better food option
+    # Optional link to a related alternative food (legacy field)
     healthy_alternative_id = Column(Integer, ForeignKey("foods.id"), nullable=True)
 
     # This allows us to access food.healthy_alternative.name easily

@@ -11,9 +11,8 @@ const UserDashboard = () => {
   const navigate = useNavigate();
   const [history, setHistory] = useState([]);
   const [stats, setStats] = useState({
-    deficit: 0,
     eco: 0,
-    swaps: 0
+    viewed: 0
   });
 
   // 1. Load Data on Mount
@@ -21,35 +20,21 @@ const UserDashboard = () => {
     const data = getHistory();
     setHistory(data);
 
-    // 2. Calculate Real Stats from History
+    // 2. Calculate Stats from History
     if (data.length > 0) {
       // Avg Sustainability Score
       const totalEco = data.reduce((acc, item) => acc + (item.sustainability_score || 0), 0);
       const avgEco = Math.round(totalEco / data.length);
 
-      // Count "Potential Swaps" (Items with low scores that you checked)
-      const swapCount = data.filter(item => item.nutrition_score < 70).length;
-
-      // Mock Deficit (Logic: 50 cals saved per healthy interaction)
-      const calorieDeficit = swapCount * 150;
-
       setStats({
-        deficit: calorieDeficit,
         eco: avgEco,
-        swaps: swapCount
+        viewed: data.length
       });
     }
   }, []);
 
   // Stats Configuration
   const analyticsCards = [
-    {
-      title: "Calorie Deficit",
-      value: stats.deficit.toLocaleString(),
-      label: "Est. saved this week",
-      icon: "Activity",
-      color: "text-emerald-500"
-    },
     {
       title: "Eco Impact",
       value: stats.eco || 0,
@@ -58,9 +43,9 @@ const UserDashboard = () => {
       color: "text-blue-500"
     },
     {
-      title: "Swaps Found",
-      value: stats.swaps,
-      label: "Better options discovered",
+      title: "Foods Viewed",
+      value: stats.viewed,
+      label: "Foods you opened recently",
       icon: "RefreshCw",
       color: "text-purple-500"
     },
@@ -89,7 +74,7 @@ const UserDashboard = () => {
         </div>
 
         {/* 2. Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {analyticsCards.map((stat, index) => (
             <AnalyticsCard key={index} {...stat} />
           ))}

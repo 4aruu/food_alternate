@@ -1,8 +1,7 @@
 """
-Kerala Food Alternatives API — Medically & Culturally Validated Engine
-=====================================================================
-Sources: ICMR/NIN dietary guidelines, FSSAI Eat Right India,
-         Ayurvedic food pairing, Kerala clinical nutrition studies.
+Kerala Food Alternatives API
+============================
+Food lookup, search, metadata and fail-closed alternatives.
 """
 
 import logging
@@ -10,7 +9,6 @@ import time
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, field_validator
 from slowapi import Limiter
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 from sqlalchemy.orm import Session, joinedload
@@ -310,167 +308,3 @@ def get_alternatives(
         health_goals=health_goals,
         limit=body.limit,
     )
-
-
-# ═══════════════════════════════════════════════════════════════
-# 6. SMART SWAP EXPLANATION ENGINE (Multi-Factor)
-# ═══════════════════════════════════════════════════════════════
-
-class SwapRequest(BaseModel):
-    original: str
-    alternative: str
-
-    @field_validator('original', 'alternative')
-    @classmethod
-    def validate_not_empty(cls, v):
-        if not v or not v.strip():
-            raise ValueError("Food name cannot be empty.")
-        if len(v) > 200:
-            raise ValueError("Food name is too long (max 200 characters).")
-        return v.strip()
-
-
-# ── Medically validated explanation templates ──
-MEDICAL_INSIGHTS = {
-    "sugar": {
-        "threshold": 5,
-        "benefit": "Significantly healthier choice with {diff}g less sugar per serving. "
-                   "Lower sugar intake helps manage blood glucose levels and reduces "
-                   "risk of insulin resistance (ICMR guideline: <25g added sugar/day).",
-        "icon": "🩺"
-    },
-    "calories": {
-        "threshold": 50,
-        "benefit": "Saves {diff} calories per serving — equivalent to a {context}. "
-                   "This swap supports sustainable weight management without sacrificing taste.",
-        "icon": "⚡"
-    },
-    "protein": {
-        "threshold": 3,
-        "benefit": "Provides {diff}g more protein for muscle repair and satiety. "
-                   "Higher protein keeps you fuller longer, reducing snacking urges.",
-        "icon": "💪"
-    },
-    "sodium": {
-        "threshold": 100,
-        "benefit": "Contains {diff}mg less sodium, supporting healthier blood pressure. "
-                   "FSSAI recommends <5g salt (2000mg sodium) per day.",
-        "icon": "❤️"
-    },
-    "fat": {
-        "threshold": 5,
-        "benefit": "Reduces fat intake by {diff}g, supporting heart health and "
-                   "cholesterol management.",
-        "icon": "🫀"
-    },
-    "fiber": {
-        "threshold": 2,
-        "benefit": "Adds {diff}g more dietary fiber, improving digestion and "
-                   "helping regulate blood sugar levels.",
-        "icon": "🌿"
-    },
-}
-
-
-@router.post("/explain-swap")
-@limiter.limit("10/minute")
-async def explain_swap(request: Request, swap_body: SwapRequest, db: Session = Depends(get_db)):
-    """
-    Generates a multi-factor, medically validated explanation for why
-    the alternative food is a better choice than the original.
-
-    Returns multiple benefits instead of just one comparison.
-    """
-    def query():
-        original_food = db.query(Food).filter(
-            Food.name.ilike(swap_body.original)
-        ).first()
-        alt_food = db.query(Food).filter(
-            Food.name.ilike(swap_body.alternative)
-        ).first()
-        return original_food, alt_food
-
-    original_food, alt_food = safe_db_query(
-        db, query, "Failed to look up food items"
-    )
-
-    # Build multi-factor explanation
-    benefits = []
-    primary_msg = f"{swap_body.alternative} is a better choice for your health goals."
-
-    if original_food and alt_food and original_food.nutrition and alt_food.nutrition:
-        o_n = original_food.nutrition
-        a_n = alt_food.nutrition
-
-        # Check each nutritional dimension
-        # Sugar reduction
-        if o_n.sugar is not None and a_n.sugar is not None:
-            sugar_diff = o_n.sugar - a_n.sugar
-            if sugar_diff >= MEDICAL_INSIGHTS["sugar"]["threshold"]:
-                benefits.append(MEDICAL_INSIGHTS["sugar"]["benefit"].format(diff=int(sugar_diff)))
-
-        # Calorie reduction
-        if o_n.calories is not None and a_n.calories is not None:
-            cal_diff = o_n.calories - a_n.calories
-            if cal_diff >= MEDICAL_INSIGHTS["calories"]["threshold"]:
-                # Contextual comparison
-                if cal_diff > 300:
-                    context = "full meal's worth of energy"
-                elif cal_diff > 150:
-                    context = "30-minute brisk walk"
-                elif cal_diff > 50:
-                    context = "15-minute jog"
-                else:
-                    context = "small snack"
-                benefits.append(MEDICAL_INSIGHTS["calories"]["benefit"].format(
-                    diff=int(cal_diff), context=context
-                ))
-
-        # Protein increase
-        if o_n.protein is not None and a_n.protein is not None:
-            prot_diff = a_n.protein - o_n.protein
-            if prot_diff >= MEDICAL_INSIGHTS["protein"]["threshold"]:
-                benefits.append(MEDICAL_INSIGHTS["protein"]["benefit"].format(diff=int(prot_diff)))
-
-        # Sodium reduction
-        if o_n.sodium is not None and a_n.sodium is not None:
-            sodium_diff = o_n.sodium - a_n.sodium
-            if sodium_diff >= MEDICAL_INSIGHTS["sodium"]["threshold"]:
-                benefits.append(MEDICAL_INSIGHTS["sodium"]["benefit"].format(diff=int(sodium_diff)))
-
-        # Fat reduction
-        if o_n.fat is not None and a_n.fat is not None:
-            fat_diff = o_n.fat - a_n.fat
-            if fat_diff >= MEDICAL_INSIGHTS["fat"]["threshold"]:
-                benefits.append(MEDICAL_INSIGHTS["fat"]["benefit"].format(diff=int(fat_diff)))
-
-        # Fiber increase
-        if o_n.fiber is not None and a_n.fiber is not None:
-            fiber_diff = a_n.fiber - o_n.fiber
-            if fiber_diff >= MEDICAL_INSIGHTS["fiber"]["threshold"]:
-                benefits.append(MEDICAL_INSIGHTS["fiber"]["benefit"].format(diff=int(fiber_diff)))
-
-        # Sustainability bonus
-        if (alt_food.sustainability_score and original_food.sustainability_score
-                and alt_food.sustainability_score > original_food.sustainability_score):
-            eco_diff = alt_food.sustainability_score - original_food.sustainability_score
-            if eco_diff >= 10:
-                benefits.append(
-                    f"A more sustainable choice with {eco_diff} points higher eco-score, "
-                    f"contributing to a lower carbon footprint."
-                )
-
-        # Build primary message from top benefit
-        if benefits:
-            primary_msg = benefits[0]
-
-    elif not original_food:
-        logger.warning("explain-swap: Original food '%s' not found in DB", swap_body.original)
-    elif not alt_food:
-        logger.warning("explain-swap: Alternative food '%s' not found in DB", swap_body.alternative)
-
-    return {
-        "explanation": primary_msg,
-        "all_benefits": benefits[:4],  # Cap at 4 benefits for UI
-        "benefit_count": len(benefits),
-    }

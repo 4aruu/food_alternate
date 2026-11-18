@@ -20,7 +20,7 @@ The only data stored is the food nutrition database (seeded via `seed.py`) in a 
 | Control | Implementation |
 |---|---|
 | **CORS** | Locked to explicit origins via `ALLOWED_ORIGINS` env var — no wildcard |
-| **Rate Limiting** | Global: 60 req/min · Search: 10/min · Alternatives: 20/min · Explain-swap: 10/min |
+| **Rate Limiting** | Global: 60 req/min · Search: 10/min · Alternatives: 20/min |
 | **Host Header Injection** | `TrustedHostMiddleware` — only whitelisted hosts accepted |
 | **Request Size** | Hard limit of 1 MB per request body |
 | **SQL Injection** | SQLAlchemy ORM with parameterized queries throughout — no raw SQL |

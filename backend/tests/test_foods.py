@@ -1,6 +1,6 @@
 """
 Tests for /foods endpoints — the core of the application.
-Covers: list all, search, get by ID, alternatives engine, explain-swap.
+Covers: list all, search, get by ID, alternatives engine.
 """
 
 from conftest import seed_food
@@ -270,58 +270,3 @@ def test_health_goals_returns_list(client):
     for preset in presets:
         assert preset["label"]
         assert len(preset["filters"]) >= 1
-
-
-# ═══════════════════════════════════════════════════════════
-# POST /foods/explain-swap — Swap Explanation Engine
-# ═══════════════════════════════════════════════════════════
-
-def test_explain_swap_with_valid_foods(client, db):
-    """Should return explanation and benefits for known foods."""
-    seed_food(db, "Fried Chicken", category="Lunch",
-              calories=550, fat=30, sugar=2, sodium=800, protein=25, fiber=1)
-    seed_food(db, "Grilled Fish", category="Lunch",
-              calories=200, fat=5, sugar=0, sodium=200, protein=35, fiber=0)
-
-    response = client.post("/foods/explain-swap", json={
-        "original": "Fried Chicken",
-        "alternative": "Grilled Fish",
-    })
-    assert response.status_code == 200
-    data = response.json()
-    assert "explanation" in data
-    assert "all_benefits" in data
-    assert "benefit_count" in data
-    # The swap is clearly better — should have multiple benefits
-    assert data["benefit_count"] >= 1
-
-
-def test_explain_swap_unknown_foods(client):
-    """Unknown food names should still return a generic explanation."""
-    response = client.post("/foods/explain-swap", json={
-        "original": "Nonexistent Food A",
-        "alternative": "Nonexistent Food B",
-    })
-    assert response.status_code == 200
-    data = response.json()
-    assert "explanation" in data
-    # Should return a generic message, not crash
-    assert len(data["explanation"]) > 0
-
-
-def test_explain_swap_empty_names(client):
-    """Empty food names should return 422 validation error."""
-    response = client.post("/foods/explain-swap", json={
-        "original": "",
-        "alternative": "Something",
-    })
-    assert response.status_code == 422
-
-
-def test_explain_swap_too_long_names(client):
-    """Names over 200 chars should return 422 validation error."""
-    response = client.post("/foods/explain-swap", json={
-        "original": "A" * 201,
-        "alternative": "Something",
-    })
-    assert response.status_code == 422

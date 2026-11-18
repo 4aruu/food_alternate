@@ -172,20 +172,7 @@ const UserRegistration = () => {
               </div>
 
               {/* Sidebar */}
-              <div className="lg:col-span-1 space-y-6">
-                {/* Quick Stats */}
-                <div className="glass rounded-xl p-6 border border-glass-border">
-                  <h3 className="font-semibold text-foreground mb-4 text-center">
-                    Join Our Community
-                  </h3>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Food Alternatives</span>
-                      <span className="text-sm font-semibold text-accent">25,000+</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <div className="lg:col-span-1 space-y-6"></div>
             </div>
           </div>
         </div>
